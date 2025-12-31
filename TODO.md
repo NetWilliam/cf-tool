@@ -646,9 +646,10 @@ cf pull 1234
 - [x] **M4**: 核心功能迁移完成（parse/submit/watch/pull/clone） ✅
 - [x] **M5**: Bug 修复（parse 命令 HTML 提取） ✅
 - [x] **M6**: 日志系统改进（CF_DEBUG 多级支持） ✅
-- [ ] **M7**: 配置文件和安装脚本完成 ⏳
-- [ ] **M8**: 用户文档和集成测试 ⏳
-- [ ] **M9**: 发布正式版本 ⏳
+- [x] **M7**: Bug 修复完整（新格式 HTML 解析 + 去除多余空行） ✅
+- [x] **M8**: 用户文档更新（README.md + README_zh_CN.md） ✅
+- [ ] **M9**: 配置文件和安装脚本完成 ⏳
+- [ ] **M10**: 发布正式版本 ⏳
 
 ---
 
@@ -717,10 +718,51 @@ cf pull 1234
 - **零配置**: 用户只需安装 MCP Chrome Server，无需手动配置
 
 #### 待办事项 📋
+- [x] HTML 解析完整修复（支持新旧两种格式）
+- [x] README 文档更新（添加 mcp-chrome 安装指南）
 - [ ] 配置文件格式更新
 - [ ] 安装脚本开发
-- [ ] 用户文档编写
 - [ ] 集成测试
+
+#### Hotfix 修复记录 🐛
+
+**Hotfix #1**: HTML 解析完整修复 (2025-12-31 20:30)
+- ✅ **问题**: 发现 Codeforces 使用两种 HTML 格式
+  - 旧格式: 使用 `<br />` 标签换行
+  - 新格式: 使用 `<div class="test-example-line">` 标签分隔
+- ✅ **修复**:
+  - 添加 `</div>` 标签处理（新格式）
+  - 保留 `<br>` 标签处理（旧格式）
+  - 添加详细的 INFO 级别日志
+  - 测试两种格式都正常工作
+- ✅ **提交**: Commit `c25d63d` - HOTFIX - Handle <div> tags in HTML parser for new Codeforces format
+
+**Hotfix #2**: 去除多余换行 (2025-12-31 20:32)
+- ✅ **问题**: `</div>` 替换为 `\n` 后，文件末尾多一个空行
+- ✅ **修复**: 在 `extractTextContent()` 中 Trim 掉末尾换行符
+- ✅ **提交**: Commit `0d4dc45` - HOTFIX - Remove trailing newline to avoid double newlines in test files
+
+**Hotfix #3**: 提交时题目 ID 大写转换 (2025-12-31)
+- ✅ **问题**: Codeforces 提交表单要求大写字母（A/B/C），但用户可能输入小写（a/b/c）
+- ✅ **修复**: 添加 `strings.ToUpper(problemID)` 转换
+- ✅ **提交**: Commit `8667beb` - HOTFIX - Add uppercase conversion for problemID in browser submit
+
+#### 用户文档更新 ✅ (2025-12-31 20:35)
+- ✅ **README.md**: 添加 "Browser Mode (Recommended)" 章节
+  - mcp-chrome 扩展安装步骤
+  - mcp-chrome-bridge 安装命令
+  - 验证安装方法（`cf mcp-ping` + `cf mocka`）
+  - 强调浏览器模式是必需的
+- ✅ **README_zh_CN.md**: 同步中文翻译
+  - 语言一致性
+  - 术语准确性
+- ✅ **包含的关键信息**:
+  - Chrome 网上应用店链接
+  - npm/yarn 安装命令
+  - 默认端口 `http://127.0.0.1:12306/mcp`
+  - `cf mcp-ping` 验证步骤
+  - `cf mocka` 浏览器测试步骤
+  - 新版本必须使用浏览器模式的说明
 
 ---
 

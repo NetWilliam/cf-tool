@@ -48,6 +48,51 @@ $ go build -ldflags "-s -w" cf.go
 
 If you don't know what's the `$GOPATH`, please see here <https://github.com/golang/go/wiki/GOPATH>.
 
+### Browser Mode (Recommended)
+
+cf-tool now supports **Browser Mode** for parsing and submitting, which bypasses Cloudflare protection and provides better stability.
+
+**Required**: [mcp-chrome](https://github.com/hangwin/mcp-chrome/) - A Chrome extension that exposes Chrome DevTools Protocol via MCP.
+
+#### Installation Steps
+
+1. **Install mcp-chrome extension**
+   - Download from [Chrome Web Store](https://chromewebstore.google.com/detail/mcp-chrome/idjnlhbcijbgdhejbbggojflijaggpj)
+   - Or load the unpacked extension from [GitHub releases](https://github.com/hangwin/mcp-chrome/releases)
+
+2. **Install mcp-chrome-bridge**
+   ```bash
+   # Using npm (recommended)
+   npm install -g @hangwin/mcp-chrome-bridge
+
+   # Or using yarn
+   yarn global add @hangwin/mcp-chrome-bridge
+   ```
+
+3. **Start mcp-chrome-bridge**
+   ```bash
+   mcp-chrome-bridge
+   ```
+   By default, it runs on `http://127.0.0.1:12306/mcp`.
+
+4. **Verify installation**
+   ```bash
+   # Test MCP connection
+   cf mcp-ping
+
+   # Test browser automation
+   cf mocka
+   ```
+
+   **Important**: Make sure both commands succeed before using cf-tool!
+
+   - `cf mcp-ping` should return: `✅ MCP Chrome Server is running`
+   - `cf mocka` should open Chrome and navigate to Codeforces
+
+**Note**: Browser Mode is **required** for `cf parse` and `cf submit` commands in the new version.
+
+For more details about mcp-chrome, visit: https://github.com/hangwin/mcp-chrome/
+
 ## Usage
 
 Let's simulate a competition.
