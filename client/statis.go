@@ -85,10 +85,6 @@ func (c *Client) Statis(info Info) (problems []StatisInfo, err error) {
 		return
 	}
 
-	if _, err = findHandle(body); err != nil {
-		return
-	}
-
 	block, err := findStatisBlock(body)
 	if err != nil {
 		return

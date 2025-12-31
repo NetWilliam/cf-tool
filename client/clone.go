@@ -22,17 +22,6 @@ type cloneData struct {
 func (c *Client) Clone(handle, rootPath string, ac bool) (err error) {
 	color.Cyan("Clone all codes of %v. Only Accepted: %v", handle, ac)
 
-	if handle == c.Handle {
-		body, err := c.fetcher.Get(c.host)
-		if err != nil {
-			return err
-		}
-
-		if _, err = findHandle(body); err != nil {
-			return err
-		}
-	}
-
 	data, err := util.GetJSONBody(c.client, fmt.Sprintf(c.host+"/api/user.status?handle=%v", handle))
 	if err != nil {
 		return

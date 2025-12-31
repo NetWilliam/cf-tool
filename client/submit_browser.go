@@ -48,12 +48,8 @@ func (c *Client) SubmitWithBrowser(info Info, langID, source string) (err error)
 	}
 	color.Green("✓ CSRF token extracted\n")
 
-	// Get current handle
-	handle, err := findHandle([]byte(content))
-	if err != nil {
-		return fmt.Errorf("failed to get current handle: %w", err)
-	}
-	fmt.Printf("Current user: %v\n\n", handle)
+	// Use handle from profile page (loaded at startup)
+	fmt.Printf("Current user: %v\n\n", c.Handle)
 
 	// Step 3: Inject code and submit using JavaScript
 	logger.Info("Submitting code using browser automation...")
@@ -160,7 +156,6 @@ func (c *Client) SubmitWithBrowser(info Info, langID, source string) (err error)
 
 	// Save submission info
 	info.SubmissionID = submissions[0].ParseID()
-	c.Handle = handle
 	c.LastSubmission = &info
 
 	return c.save()

@@ -45,11 +45,6 @@ func (c *Client) RaceContest(info Info) (err error) {
 		return
 	}
 
-	_, err = findHandle(body)
-	if err != nil {
-		return
-	}
-
 	if !bytes.Contains(body, []byte(`Go!</a>`)) {
 		count, err := findCountdown(body)
 		if err != nil {
