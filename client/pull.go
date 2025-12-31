@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"html"
@@ -52,9 +53,21 @@ func (c *Client) PullCode(URL, path, ext string, rename bool) (filename string, 
 		return "", errors.New(ErrorSkip)
 	}
 
-	body, err := util.GetBody(c.client, URL)
-	if err != nil {
-		return
+	var body []byte
+
+	// Use browser mode if enabled
+	if c.browserEnabled && c.mcpClient != nil {
+		content, err := c.mcpClient.GetWebContent(context.Background(), URL)
+		if err != nil {
+			return "", fmt.Errorf("browser request failed: %w", err)
+		}
+		body = []byte(content)
+	} else {
+		// Use traditional HTTP client
+		body, err = util.GetBody(c.client, URL)
+		if err != nil {
+			return
+		}
 	}
 
 	message, err := findMessage(body)
