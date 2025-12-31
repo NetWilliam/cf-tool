@@ -40,7 +40,7 @@ func List() (err error) {
 	scanner := bufio.NewScanner(io.Reader(&buf))
 	for i := -2; scanner.Scan(); i++ {
 		line := scanner.Text()
-		if i >= 0 {
+		if i >= 0 && i < len(problems) {
 			if strings.Contains(problems[i].State, "accepted") {
 				line = color.New(color.BgGreen).Sprint(line)
 			} else if strings.Contains(problems[i].State, "rejected") {
