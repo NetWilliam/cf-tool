@@ -45,15 +45,6 @@ func (c *Client) Submit(info Info, langID, source string) (err error) {
 
 	logger.Debug("Fetched submit page: size=%d bytes", len(body))
 
-	handle, err := findHandle(body)
-	if err != nil {
-		logger.Warning("Not logged in while submitting")
-		return
-	}
-
-	logger.Info("Current user: %s", handle)
-	fmt.Printf("Current user: %v\n", handle)
-
 	csrf, err := findCsrf(body)
 	if err != nil {
 		logger.Error("Failed to extract CSRF token: %v", err)
@@ -113,9 +104,8 @@ func (c *Client) Submit(info Info, langID, source string) (err error) {
 	}
 
 	info.SubmissionID = submissions[0].ParseID()
-	c.Handle = handle
 	c.LastSubmission = &info
 
-	logger.Info("Submission saved: ID=%s, handle=%s", info.SubmissionID, handle)
+	logger.Info("Submission saved: ID=%s", info.SubmissionID)
 	return c.save()
 }

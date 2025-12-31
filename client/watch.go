@@ -249,11 +249,6 @@ func (c *Client) getSubmissions(URL string, n int) (submissions []Submission, er
 
 	logger.Debug("Fetched submissions page: size=%d bytes", len(body))
 
-	if _, err = findHandle(body); err != nil {
-		logger.Warning("Not logged in while fetching submissions")
-		return
-	}
-
 	cfOffset, err := findCfOffset(body)
 	if err != nil {
 		logger.Warning("Failed to find CF UTC offset: %v", err)

@@ -50,14 +50,6 @@ func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, st
 
 	logger.Debug("Fetched problem page: size=%d bytes", len(body))
 
-	_, err = findHandle(body)
-	if err != nil {
-		logger.Warning("Not logged in while parsing: %s", URL)
-		return
-	}
-
-	logger.Debug("User is logged in")
-
 	input, output, err := findSample(body)
 	if err != nil {
 		logger.Error("Failed to extract samples: %v", err)
