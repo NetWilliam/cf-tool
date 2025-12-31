@@ -120,7 +120,11 @@ cf submit 100 a
 
 **文件**: `client/browser/submit.go`
 
-**问题 1**: 没有选择题目（第 29-37 行）
+**问题 1**: 没有选择题目（第 30-37 行）
+
+**问题 2**: problemID 需要大写转换
+
+Codeforces 的题目选择器要求使用大写字母（A、B、C、D、E），但用户可能输入小写字母（a、b、c、d、e）。
 ```go
 // Step 2: Fill language selector
 logger.Debug("Selecting language: %s", langID)
@@ -186,8 +190,10 @@ func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source,
     time.Sleep(2 * time.Second)
 
     // Step 2: Select problem (A/B/C/D/E)
-    logger.Debug("Selecting problem: %s", problemID)
-    if err := mcpClient.Fill(ctx, "[name='submittedProblemIndex']", problemID); err != nil {
+    // Convert problemID to uppercase (e.g., "a" → "A")
+    problemIDUpper := strings.ToUpper(problemID)
+    logger.Debug("Selecting problem: %s (converted to: %s)", problemID, problemIDUpper)
+    if err := mcpClient.Fill(ctx, "[name='submittedProblemIndex']", problemIDUpper); err != nil {
         logger.Warning("Failed to fill problem selector: %v", err)
     }
 
@@ -313,11 +319,12 @@ func (c *Client) Submit(info Info, langID, source string) (err error) {
 ```bash
 $ cf submit 101 a
 ✓ Navigating to submit page
-✓ Selecting problem: a
+✓ Selecting problem: a (converted to: A)
 ✓ Selecting language: 91
 ✓ Injecting source code
 ✓ Clicking submit button with selector: #singlePageSubmitButton
 ✅ Code submitted successfully via browser
+✓ Submission ID=355976655, problem=A - Homework
 ```
 
 ---
@@ -343,6 +350,7 @@ $ cf submit 101 a
 2. **client/browser/submit.go**
    - 添加 `problemID` 参数到 `SubmitCode()` 函数
    - 添加选择题目的步骤（Step 2）
+   - **添加大写转换**: `problemIDUpper := strings.ToUpper(problemID)` 确保符合 Codeforces 要求
    - 更新提交按钮选择器，添加 `#singlePageSubmitButton`
    - 重新组织步骤顺序：选择题目 → 选择语言 → 注入代码 → 点击提交
 
@@ -358,18 +366,21 @@ $ cf submit 101 a
 
 ✅ **Bug #2 修复验证**:
 - 提交 A 题：成功
+- **大写转换**: "a" → "A" 正确转换
 - 选择题目正确填充：`submittedProblemIndex` = "A"
 - 提交按钮点击成功：使用 `#singlePageSubmitButton`
+- 提交记录显示正确的题目：`problem=A - Homework`
 
 ### Git Commit
 
 ```bash
-commit: HOTFIX - Fix two critical bugs in parse and submit
-1. HTML parser: Preserve newlines in test cases
-2. Browser submit: Select problem before submitting
+commit: HOTFIX - Fix critical bugs in parse and submit
+1. HTML parser: Preserve newlines in test cases (Bug #1)
+2. Browser submit: Select problem before submitting (Bug #2)
+3. Browser submit: Convert problemID to uppercase (a → A)
 ```
 
 ---
 
-**最后更新**: 2025-12-31 19:47
-**状态**: ✅ 两个 bug 已修复并测试通过
+**最后更新**: 2025-12-31 20:10
+**状态**: ✅ 所有关键 bug 已修复并测试通过（包括大写转换）

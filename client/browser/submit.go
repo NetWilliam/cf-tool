@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/NetWilliam/cf-tool/pkg/logger"
@@ -27,8 +28,10 @@ func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source,
 	time.Sleep(2 * time.Second)
 
 	// Step 2: Select problem (A/B/C/D/E) - CRITICAL FIX
-	logger.Debug("Selecting problem: %s", problemID)
-	if err := mcpClient.Fill(ctx, "[name='submittedProblemIndex']", problemID); err != nil {
+	// Convert problemID to uppercase (e.g., "a" → "A")
+	problemIDUpper := strings.ToUpper(problemID)
+	logger.Debug("Selecting problem: %s (converted to: %s)", problemID, problemIDUpper)
+	if err := mcpClient.Fill(ctx, "[name='submittedProblemIndex']", problemIDUpper); err != nil {
 		logger.Warning("Failed to fill problem selector: %v", err)
 	}
 
