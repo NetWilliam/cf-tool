@@ -30,6 +30,7 @@ If you want to compete, the best command is "cf race"
 Usage:
   cf config
   cf mcp-ping
+  cf mocka
   cf submit [-f <file>] [<specifier>...]
   cf list [<specifier>...]
   cf parse [<specifier>...]
@@ -45,6 +46,7 @@ Usage:
   cf upgrade
 
   cf mcp-ping           Test MCP Chrome server connection and list available tools.
+  cf mocka              Test browser automation by opening Google Search in Chrome.
 
 Options:
   -h --help            Show this screen.

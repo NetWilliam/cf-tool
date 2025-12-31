@@ -52,6 +52,8 @@ func Eval(opts docopt.Opts) error {
 		return Upgrade()
 	} else if Args.McpPing {
 		return McpPing()
+	} else if Args.Mocka {
+		return Mocka()
 	}
 	return nil
 }

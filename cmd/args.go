@@ -36,6 +36,7 @@ type ParsedArgs struct {
 	Clone     bool     `docopt:"clone"`
 	Upgrade   bool     `docopt:"upgrade"`
 	McpPing   bool     `docopt:"mcp-ping"`
+	Mocka     bool     `docopt:"mocka"`
 }
 
 // Args global variable
