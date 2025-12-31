@@ -12,7 +12,7 @@ import (
 )
 
 // SubmitCode performs browser automation to submit code
-func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source string) error {
+func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source, problemID string) error {
 	if mcpClient == nil {
 		return errors.New("browser mode required")
 	}
@@ -26,7 +26,15 @@ func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source 
 
 	time.Sleep(2 * time.Second)
 
-	// Step 2: Fill language selector
+	// Step 2: Select problem (A/B/C/D/E) - CRITICAL FIX
+	logger.Debug("Selecting problem: %s", problemID)
+	if err := mcpClient.Fill(ctx, "[name='submittedProblemIndex']", problemID); err != nil {
+		logger.Warning("Failed to fill problem selector: %v", err)
+	}
+
+	time.Sleep(500 * time.Millisecond)
+
+	// Step 3: Select language
 	logger.Debug("Selecting language: %s", langID)
 	if err := mcpClient.Fill(ctx, "#programTypeId", langID); err != nil {
 		logger.Warning("Failed to fill language selector with #programTypeId: %v", err)
@@ -36,8 +44,14 @@ func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source 
 		}
 	}
 
-	// Step 3: Inject source code using JavaScript
+	time.Sleep(500 * time.Millisecond)
+
+	// Step 4: Inject source code using JavaScript
 	logger.Debug("Injecting source code (%d bytes)...", len(source))
+
+	// Escape source for JavaScript
+	sourceEscaped := jsonEscape(source)
+
 	jsCode := fmt.Sprintf(`
 		(function() {
 			let sourceField = document.querySelector('[name="source"]');
@@ -50,7 +64,7 @@ func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source 
 			}
 			return 'failed';
 		})();
-	`, jsonEscape(source))
+	`, sourceEscaped)
 
 	_, err := mcpClient.CallTool(ctx, "chrome_javascript", map[string]interface{}{
 		"code": jsCode,
@@ -61,9 +75,10 @@ func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source 
 
 	time.Sleep(500 * time.Millisecond)
 
-	// Step 4: Click submit button
+	// Step 5: Click submit button (use correct ID for Codeforces)
 	logger.Debug("Clicking submit button...")
 	submitSelectors := []string{
+		"#singlePageSubmitButton",  // ✅ Codeforces specific button ID
 		"input[type='submit']",
 		"button[type='submit']",
 		".submit",
@@ -77,6 +92,7 @@ func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source 
 			continue
 		}
 		submitErr = nil
+		logger.Debug("Successfully clicked submit button with selector: %s", selector)
 		break
 	}
 

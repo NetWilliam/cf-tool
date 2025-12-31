@@ -35,7 +35,7 @@ func (c *Client) Submit(info Info, langID, source string) (err error) {
 	defer cancel()
 
 	// Use browser automation to submit
-	if err := browser.SubmitCode(ctx, c.mcpClient, URL, langID, source); err != nil {
+	if err := browser.SubmitCode(ctx, c.mcpClient, URL, langID, source, info.ProblemID); err != nil {
 		logger.Error("Failed to submit: %v", err)
 		return err
 	}
