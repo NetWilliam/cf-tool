@@ -31,6 +31,7 @@ Usage:
   cf config
   cf mcp-ping
   cf mocka
+  cf logtest
   cf submit [-f <file>] [<specifier>...]
   cf list [<specifier>...]
   cf parse [<specifier>...]
@@ -47,6 +48,7 @@ Usage:
 
   cf mcp-ping           Test MCP Chrome server connection and list available tools.
   cf mocka              Test browser automation by opening Google Search in Chrome.
+  cf logtest            Test logging system with different log levels and JSON output.
 
 Options:
   -h --help            Show this screen.
