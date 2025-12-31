@@ -2,6 +2,7 @@ package browser
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/NetWilliam/cf-tool/pkg/mcp"
 )

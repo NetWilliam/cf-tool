@@ -30,9 +30,9 @@ type Client struct {
 	proxy          string
 	path           string
 	client         *http.Client
-	mcpClient      *mcp.Client    `json:"-"`      // MCP client for browser mode
-	browserEnabled bool           `json:"-"`      // Whether browser mode is enabled
-	fetcher        Fetcher        `json:"-"`      // Unified fetcher interface
+	mcpClient      *mcp.Client `json:"-"` // MCP client for browser mode
+	browserEnabled bool        `json:"-"` // Whether browser mode is enabled
+	fetcher        Fetcher     `json:"-"` // Unified fetcher interface
 }
 
 // Instance global client
