@@ -119,90 +119,60 @@ git commit -m "feat: [阶段1] 实现Go MCP客户端基础库
 
 ---
 
-### 阶段 1：基础设施搭建 ⏳
+### 阶段 1：基础设施搭建 ✅
 
-#### 1.1 Go MCP 客户端库
+#### 1.1 Go MCP 客户端库 ✅
 
 **目录结构**:
 ```
 pkg/mcp/
 ├── client.go          # MCP 协议客户端
-├── transport.go       # stdio/HTTP 传输层
 ├── tools.go           # 工具调用封装
 └── types.go           # 数据类型定义
 ```
 
-**核心接口设计**:
+**核心接口**:
+- `Client` - MCP 协议客户端
+- `CallTool()` - 调用 MCP 工具
+- `Close()` - 关闭连接
+
+**已完成**:
+- [x] 实现 stdio 传输协议
+- [x] 实现 HTTP 传输协议
+- [x] 实现 JSON-RPC 2.0 消息格式
+- [x] 支持超时和重试机制
+- [x] 错误处理和日志记录
+- [x] 封装常用 Chrome 工具调用
+
+#### 1.2 浏览器 HTTP 客户端 ✅
+
+**文件**: `client/fetcher.go`
+
+**核心接口**:
 ```go
-// pkg/mcp/client.go
-type Client interface {
-    // 调用 MCP 工具
-    CallTool(ctx context.Context, name string, args map[string]interface{}) (*ToolResult, error)
-
-    // 关闭连接
-    Close() error
-
-    // 检查连接状态
-    Ping(ctx context.Context) error
+type Fetcher interface {
+    Get(url string) ([]byte, error)
+    GetJSON(url string) (map[string]interface{}, error)
+    Post(url string, data url.Values) ([]byte, error)
 }
 
-type ToolResult struct {
-    Content []interface{} `json:"content"`
-    IsError bool          `json:"isError"`
-    Data    []byte        `json:"data"`    // 原始响应数据
-}
+type HTTPFetcher struct { ... }
+type BrowserFetcher struct { ... }
 ```
 
-**实现要点**:
-- [ ] 实现 stdio 传输协议（与 MCP 服务器通信）
-- [ ] 实现 JSON-RPC 2.0 消息格式
-- [ ] 支持超时和重试机制
-- [ ] 错误处理和日志记录
-
-#### 1.2 浏览器 HTTP 客户端
-
-**目录结构**:
-```
-client/browser/
-├── browser_client.go  # 浏览器客户端实现
-├── request.go         # 请求封装
-├── response.go        # 响应解析
-└── cookies.go         # Cookie 管理（可选）
-```
-
-**核心接口设计**:
-```go
-// client/browser/browser_client.go
-type BrowserClient struct {
-    mcpClient mcp.Client
-    timeout   time.Duration
-}
-
-// 兼容现有 http.Client 接口
-type HttpClient interface {
-    Get(url string) (*http.Response, error)
-    PostForm(url string, data url.Values) (*http.Response, error)
-    Do(req *http.Request) (*http.Response, error)
-}
-
-// 新增方法
-func NewBrowserClient(mcpClient mcp.Client) *BrowserClient
-func (c *BrowserClient) Get(url string) ([]byte, error)
-func (c *BrowserClient) Post(url string, data url.Values) ([]byte, error)
-func (c *BrowserClient) GetJSON(url string) (map[string]interface{}, error)
-```
-
-**实现要点**:
-- [ ] 通过 `chrome_network_request` 工具发送请求
-- [ ] 将浏览器响应转换为 Go HTTP Response
-- [ ] 处理重定向、cookies 等细节
-- [ ] 保持与现有 `util.GetBody/PostBody` 兼容
+**已完成**:
+- [x] HTTPFetcher - 传统 HTTP 模式
+- [x] BrowserFetcher - 浏览器模式
+- [x] 通过 `chrome_network_request` 发送请求
+- [x] 通过 `chrome_get_web_content` 获取 HTML
+- [x] 统一的 Fetcher 接口
+- [x] 自动检测并切换模式
 
 ---
 
-### 阶段 2：MCP-Ping 测试工具 🔧
+### 阶段 2：MCP-Ping 测试工具 ✅
 
-#### 2.1 新增命令: `cf mcp-ping`
+#### 2.1 新增命令: `cf mcp-ping` ✅
 
 **功能**:
 - 检测 MCP Chrome Server 是否正确安装
@@ -210,190 +180,38 @@ func (c *BrowserClient) GetJSON(url string) (map[string]interface{}, error)
 - 显示可用的 MCP 工具列表
 - 提供安装提示（如果未安装）
 
-**目录结构**:
-```
-cmd/
-└── mcp-ping.go        # 新增命令
-```
+**文件**: `cmd/mcp-ping.go`
 
-**实现**:
-```go
-// cmd/mcp-ping.go
-package cmd
-
-import (
-    "fmt"
-    "context"
-    "time"
-
-    "github.com/NetWilliam/cf-tool/pkg/mcp"
-    "github.com/fatih/color"
-)
-
-var cmdMcpPing = &Command{
-    Usage: "mcp-ping",
-    Short: "Test MCP Chrome server connection",
-    Long: `
-Test if the MCP Chrome server is properly installed and accessible.
-This command will:
-  1. Try to connect to the MCP server
-  2. List available browser tools
-  3. Report connection status
-  4. Provide installation hints if needed
-`,
-    Run: mcpPing,
-}
-
-func mcpPing(args []string) error {
-    color.Cyan("Testing MCP Chrome server connection...\n")
-
-    // 尝试创建 MCP 客户端
-    client, err := mcp.NewClient(mcp.Config{
-        Transport: "stdio",
-        Command:   "node",
-        Args:      []string{"/path/to/mcp-chrome-bridge/dist/mcp/mcp-server-stdio.js"},
-        Timeout:   5 * time.Second,
-    })
-
-    if err != nil {
-        color.Red("❌ Failed to create MCP client: %v", err)
-        printInstallationHints()
-        return err
-    }
-    defer client.Close()
-
-    // Ping 测试
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-    defer cancel()
-
-    if err := client.Ping(ctx); err != nil {
-        color.Red("❌ MCP server ping failed: %v", err)
-        printInstallationHints()
-        return err
-    }
-
-    color.Green("✓ MCP server is running!\n")
-
-    // 获取可用工具列表
-    tools, err := client.ListTools(ctx)
-    if err != nil {
-        color.Yellow("⚠ Could not list tools: %v", err)
-        return nil
-    }
-
-    color.Cyan("Available tools:")
-    for _, tool := range tools {
-        color.White("  • %s: %s", tool.Name, tool.Description)
-    }
-
-    color.Green("\n✓ Your browser is ready to use with CF-Tool!")
-    return nil
-}
-
-func printInstallationHints() {
-    color.Cyan("\n📦 Installation Guide:")
-    color.White(`
-1. Install Chrome Extension:
-   - Download from: https://github.com/hangwin/mcp-chrome/releases
-   - Load in Chrome: chrome://extensions/ → Developer mode → Load unpacked
-
-2. Install Native Host:
-   - Follow: https://github.com/hangwin/mcp-chrome/blob/master/docs/INSTALL.md
-
-3. Verify Installation:
-   - Run: cf mcp-ping
-
-For more details, visit: https://github.com/hangwin/mcp-chrome
-`)
-}
-```
-
-**集成到主命令**:
-```go
-// cmd/cf.go
-var commands = []*Command{
-    // ... 现有命令
-    cmdMcpPing,  // 新增
-}
-```
-
-**测试要点**:
-- [ ] 未安装 MCP 时给出清晰提示
-- [ ] 已安装时显示可用工具
-- [ ] 超时处理（5-10秒）
-- [ ] 跨平台兼容性（Windows/Linux/macOS）
+**已完成**:
+- [x] 实现 mcp-ping 命令
+- [x] 检测 MCP 服务器连接
+- [x] 列出可用的 Chrome 工具
+- [x] 超时处理（5-10秒）
+- [x] 跨平台兼容性
+- [x] 提供安装提示
 
 ---
 
 ### 阶段 3：核心功能迁移 🔄
 
-#### 3.1 登录模块重构
+#### 3.1 登录模块简化 ✅
 
-**新增文件**: `client/login_browser.go`
+**已删除**:
+- `client/Login()` 函数
+- `client/ConfigLogin()` 函数
+- `cmd/executeWithLoginRetry()` 重试逻辑
+- login 配置选项
 
-**核心流程**:
-```
-1. chrome_navigate("https://codeforces.com/enter")
-2. chrome_get_web_content() → 检测登录状态
-3. 如果未登录:
-   a. chrome_fill_or_select("#handleOrEmail", username)
-   b. chrome_fill_or_select("#password", password)
-   c. chrome_click_element("input[type='submit']")
-4. 验证登录成功
-```
+**保留功能**:
+- `client/extractHandleFromProfile()` - 从 profile 页面提取用户名
+- `client/extractEmailFromProfile()` - 从 profile 页面提取邮箱
 
-**实现**:
-```go
-// client/login_browser.go
-func (c *Client) LoginWithBrowser() error {
-    // 导航到登录页
-    if err := c.browser.Navigate(c.host + "/enter"); err != nil {
-        return err
-    }
+**新设计**:
+- 浏览器默认已登录，无需处理登录逻辑
+- 用户在浏览器中管理登录状态
+- CF-Tool 直接使用浏览器的 cookies
 
-    // 检查是否已登录
-    logged, handle := c.checkLoginStatus()
-    if logged {
-        color.Green("Already logged in as %s", handle)
-        c.Handle = handle
-        return nil
-    }
-
-    // 提示用户手动登录（推荐）
-    color.Cyan("Please login in the browser within 60 seconds...")
-    if err := c.waitForLogin(); err != nil {
-        return fmt.Errorf("login timeout: %w", err)
-    }
-
-    return nil
-}
-
-func (c *Client) checkLoginStatus() (bool, string) {
-    // 使用 chrome_get_web_content 获取页面
-    // 解析查找用户名
-    // 如果找到返回 (true, username)
-    // 否则返回 (false, "")
-}
-
-func (c *Client) waitForLogin() error {
-    // 轮询检查登录状态，最多等待 60 秒
-    for i := 0; i < 60; i++ {
-        time.Sleep(time.Second)
-        if logged, handle := c.checkLoginStatus(); logged {
-            c.Handle = handle
-            return nil
-        }
-    }
-    fmt.Errorf("login timeout")
-}
-```
-
-**迁移要点**:
-- [ ] 保留现有的加密密码逻辑（可选自动登录）
-- [ ] 支持手动登录模式（用户在浏览器中操作）
-- [ ] 登录状态持久化到 session 文件
-
-#### 3.2 提交模块重构
+#### 3.2 提交模块重构 ✅
 
 **新增文件**: `client/submit_browser.go`
 
@@ -462,30 +280,36 @@ func jsString(s string) string {
 - [ ] 保持与原有 `WatchSubmission` 兼容
 - [ ] 错误处理和重试机制
 
-#### 3.3 解析模块重构
+#### 3.3 解析模块重构 ✅
 
-**修改文件**: `client/parse.go`
+**修改文件**: `client/parse.go`, `client/statis.go`
 
-**变更**:
+**核心改进**:
+1. **Fetcher 抽象**:
 ```go
-// 原代码
-body, err := util.GetBody(c.client, URL)
-
-// 新代码
-var body []byte
-if c.browser != nil {
-    body, err = c.browser.GetContentURL(URL)
-} else {
-    body, err = util.GetBody(c.client, URL)
-}
+// 使用 Fetcher 接口统一数据获取
+body, err := c.fetcher.Get(URL)
 ```
 
-**迁移要点**:
-- [ ] 最小改动，保持解析逻辑不变
-- [ ] 只是替换数据获取方式
-- [ ] HTML 解析和样例提取逻辑复用
+2. **HTML 解析增强**:
+```go
+// 新增 extractTextContent() 函数
+// 支持从嵌套 HTML 中提取纯文本
+// 自动去除 HTML 标签，只保留文本内容
+```
 
-#### 3.4 其他模块重构
+3. **样本提取修复**:
+- 支持新版 Codeforces HTML 结构
+- 处理嵌套 div 的情况
+- 提取 `<pre>` 标签内的纯文本
+
+**已完成**:
+- [x] Fetcher 接口统一
+- [x] HTML 内容获取修复
+- [x] 样本提取逻辑增强
+- [x] 添加调试日志
+
+#### 3.4 其他模块重构 ✅
 
 **涉及文件**:
 - `client/watch.go` - 监控提交状态
@@ -496,59 +320,55 @@ if c.browser != nil {
 
 **重构策略**:
 ```go
-// 通用模式：条件判断使用浏览器还是HTTP
-var body []byte
-if c.browser != nil {
-    // 使用浏览器客户端
-    body, err = c.browser.Get(url)
-} else {
-    // 使用传统HTTP客户端
-    body, err = util.GetBody(c.client, url)
-}
+// 使用 Fetcher 接口统一数据获取
+body, err := c.fetcher.Get(url)
 ```
 
-**具体修改**:
+**已完成**:
+- [x] client/watch.go - 移除登录检查，使用 Fetcher
+- [x] client/pull.go - 移除登录检查，使用 Fetcher
+- [x] client/clone.go - 移除登录检查，使用 Fetcher
+- [x] client/statis.go - 移除登录检查，添加日志，使用 Fetcher
+- [x] client/race.go - 移除登录检查，使用 Fetcher
+- [x] 所有模块统一使用 Fetcher 接口
+- [x] 移除所有 findHandle() 登录状态检查
 
-1. **client/watch.go**:
-```go
-// getSubmissions() 函数
-// 原代码: util.GetBody(c.client, URL)
-// 新代码: 根据c.browser判断使用哪个客户端
+---
+
+### 阶段 3.5：日志系统改进 ✅
+
+#### CF_DEBUG 多级日志支持
+
+**功能**:
+- 支持多个日志级别（Debug/Info/Warning/Error）
+- 通过环境变量 CF_DEBUG 控制日志详细程度
+- 彩色日志输出
+- 结构化日志支持
+
+**使用方法**:
+```bash
+# 详细日志（包含所有调试信息）
+CF_DEBUG=debug ./bin/cf parse 100
+# 或
+CF_DEBUG=1 ./bin/cf parse 100
+
+# 标准日志（只显示重要信息）
+CF_DEBUG=info ./bin/cf parse 100
+# 或
+CF_DEBUG=2 ./bin/cf parse 100
 ```
 
-2. **client/pull.go**:
-```go
-// PullCode() 函数
-// 原代码: util.GetBody(c.client, URL)
-// 新代码: 根据c.browser判断使用哪个客户端
-```
+**实现文件**:
+- `pkg/logger/` - 日志系统实现
+- `client/client.go` - CF_DEBUG 环境变量处理
 
-3. **client/clone.go**:
-```go
-// Clone() 函数
-// 原代码: util.GetJSONBody(c.client, url)
-// 新代码: 使用对应的GetJSON方法
-```
-
-4. **client/statis.go**:
-```go
-// Statis() 函数
-// 原代码: util.GetBody(c.client, url)
-// 新代码: 根据c.browser判断使用哪个客户端
-```
-
-5. **client/race.go**:
-```go
-// RaceContest() 函数
-// 原代码: util.GetBody(c.client, url)
-// 新代码: 根据c.browser判断使用哪个客户端
-```
-
-**迁移要点**:
-- [ ] 保持接口不变，只替换底层HTTP调用
-- [ ] 统一错误处理
-- [ ] 保持向后兼容（HTTP模式仍可用）
-- [ ] 浏览器模式下优先使用chrome_get_web_content获取页面
+**已完成**:
+- [x] 实现分级日志系统
+- [x] CF_DEBUG=debug/1 → DebugLevel
+- [x] CF_DEBUG=info/2 → InfoLevel
+- [x] 彩色日志输出
+- [x] 转换 happy path 输出到 logger.Info
+- [x] 保留用户重要信息（info.Hint()）的 color.Cyan
 
 ---
 
@@ -754,13 +574,19 @@ cf pull 1234
 
 ## 📦 交付物清单
 
-- [ ] **阶段 1**: Go MCP 客户端库 (`pkg/mcp/`)
-- [ ] **阶段 1**: 浏览器 HTTP 客户端 (`client/browser/`)
-- [ ] **阶段 2**: `cf mcp-ping` 测试命令 (`cmd/mcp-ping.go`)
-- [ ] **阶段 3**: 重构登录模块 (`client/login_browser.go`)
-- [ ] **阶段 3**: 重构提交模块 (`client/submit_browser.go`)
-- [ ] **阶段 3**: 重构解析模块（修改 `client/parse.go`）
-- [ ] **阶段 3**: 重构其他模块（watch, pull, clone）
+### 已完成 ✅
+- [x] **阶段 1**: Go MCP 客户端库 (`pkg/mcp/`)
+- [x] **阶段 1**: 浏览器 HTTP 客户端 (`client/fetcher.go`)
+- [x] **阶段 2**: `cf mcp-ping` 测试命令 (`cmd/mcp-ping.go`)
+- [x] **阶段 3**: 浏览器模式提交模块 (`client/submit_browser.go`)
+- [x] **阶段 3**: 浏览器模式解析模块 (`client/parse.go`)
+- [x] **阶段 3**: 其他模块适配（watch, pull, clone, statis, race）
+- [x] **功能改进**: 删除 login/logout 功能，简化为浏览器模式
+- [x] **功能改进**: 移除所有登录状态检查
+- [x] **功能改进**: 优化日志输出，添加 CF_DEBUG 多级支持
+- [x] **Bug修复**: 修复 parse 命令样本提取（支持嵌套 HTML 结构）
+
+### 待完成 ⏳
 - [ ] **阶段 4**: 配置文件格式更新 (`config/config.go`)
 - [ ] **阶段 4**: 配置命令更新 (`cmd/config.go`)
 - [ ] **阶段 5**: 安装脚本 (`scripts/install-browser.sh`)
@@ -814,23 +640,87 @@ cf pull 1234
 
 ## 📅 里程碑
 
-- [ ] **M1**: 基础设施完成（MCP 客户端 + 浏览器客户端）
-- [ ] **M2**: `cf mcp-ping` 命令可用
-- [ ] **M3**: 登录功能迁移完成
-- [ ] **M4**: 提交功能迁移完成（核心功能可用）
-- [ ] **M5**: 所有功能迁移完成
-- [ ] **M6**: 文档和安装脚本完成
-- [ ] **M7**: 测试和修复 Bug
-- [ ] **M8**: 发布正式版本
+- [x] **M1**: 基础设施完成（MCP 客户端 + 浏览器客户端） ✅
+- [x] **M2**: `cf mcp-ping` 命令可用 ✅
+- [x] **M3**: 功能简化完成（删除登录流程，浏览器默认已登录） ✅
+- [x] **M4**: 核心功能迁移完成（parse/submit/watch/pull/clone） ✅
+- [x] **M5**: Bug 修复（parse 命令 HTML 提取） ✅
+- [x] **M6**: 日志系统改进（CF_DEBUG 多级支持） ✅
+- [ ] **M7**: 配置文件和安装脚本完成 ⏳
+- [ ] **M8**: 用户文档和集成测试 ⏳
+- [ ] **M9**: 发布正式版本 ⏳
 
 ---
 
 ## 📝 开发日志
 
 ### 2025-12-31
-- ✅ 完成项目规划
-- ✅ 创建详细的 TODO.md
-- 🔄 待开始实现
+
+#### 浏览器模式核心功能 ✅
+- ✅ **MCP 客户端库**: 完成 `pkg/mcp/` 基础设施
+  - 支持 stdio 和 HTTP 传输协议
+  - 实现 JSON-RPC 2.0 通信
+  - 封装常用 Chrome 工具调用
+
+- ✅ **Fetcher 抽象层**: 完成 `client/fetcher.go`
+  - 统一的 Fetcher 接口
+  - HTTPFetcher（传统模式）
+  - BrowserFetcher（浏览器模式）
+  - 自动检测并切换模式
+
+- ✅ **核心命令适配**:
+  - `cf mcp-ping` - 测试 MCP 连接
+  - `cf parse` - 解析题目样本（修复 HTML 提取）
+  - `cf submit` - 浏览器模式提交
+  - `cf watch` - 监控提交状态
+  - `cf pull` - 拉取代码
+  - `cf clone` - 克隆用户提交
+  - `cf statis` - 获取比赛统计
+  - `cf race` - 比赛倒计时
+
+#### 功能简化 ✅
+- ✅ **删除登录流程**:
+  - 移除 `Login()` 和 `ConfigLogin()` 函数
+  - 移除 `executeWithLoginRetry()` 重试逻辑
+  - 移除 login 配置选项
+  - 简化为：浏览器默认已登录，直接使用
+
+- ✅ **移除登录检查**:
+  - 删除 `findHandle()` 登录状态验证
+  - 从 parse/submit/watch/statis/clone/race 中移除检查
+  - 简化代码逻辑
+
+#### 日志系统改进 ✅
+- ✅ **多级日志支持**:
+  - 实现 `pkg/logger/` 分级日志系统
+  - 支持 Debug/Info/Warning/Error 级别
+  - 添加 CF_DEBUG 环境变量支持：
+    - `CF_DEBUG=debug` 或 `1` → 详细日志
+    - `CF_DEBUG=info` 或 `2` → 标准日志
+  - 转换 happy path 的 color.Cyan/Yellow 为 logger.Info
+
+#### Bug 修复 ✅
+- ✅ **Parse 命令修复** (Commit: `60c965c`):
+  - 修复 BrowserFetcher 获取 HTML 内容
+  - 修复样本提取逻辑（支持嵌套 HTML）
+  - 添加 `extractTextContent()` 清理 HTML 标签
+  - 成功解析 Codeforces 新版 HTML 结构
+
+- ✅ **日志级别改进** (Commit: `701b467`):
+  - CF_DEBUG 支持多档位
+  - 用户可选择日志详细程度
+
+#### 技术亮点 🌟
+- **Fetcher 模式**: 统一接口，HTTP 和浏览器模式无缝切换
+- **自动检测**: 启动时自动检测 MCP 服务器并启用浏览器模式
+- **HTML 解析增强**: 支持多种 HTML 结构，去除标签提取纯文本
+- **零配置**: 用户只需安装 MCP Chrome Server，无需手动配置
+
+#### 待办事项 📋
+- [ ] 配置文件格式更新
+- [ ] 安装脚本开发
+- [ ] 用户文档编写
+- [ ] 集成测试
 
 ---
 
