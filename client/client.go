@@ -94,7 +94,7 @@ func (c *Client) initBrowserMode() error {
 		logger.Info("Using HTTP transport: %s\n", serverURL)
 		mcpClient, err = mcp.NewClientHTTP(serverURL)
 	} else if mcpPath != "" {
-		color.Cyan("Using stdio transport: %s\n", mcpPath)
+		logger.Info("Using stdio transport: %s\n", mcpPath)
 		mcpClient, err = mcp.NewClient("node", []string{mcpPath})
 	}
 
@@ -151,7 +151,7 @@ func (c *Client) loadUserInfoFromBrowser() {
 	email := extractEmailFromProfile(content)
 	if email != "" {
 		c.HandleOrEmail = email
-		color.Cyan("  Email: %s\n", email)
+		logger.Info("Email: %s\n", email)
 	}
 
 	if handle == "" && email == "" {

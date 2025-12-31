@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/NetWilliam/cf-tool/pkg/logger"
 	"github.com/fatih/color"
 )
 
@@ -26,7 +27,7 @@ func (c *Client) SubmitWithBrowser(info Info, langID, source string) (err error)
 		return err
 	}
 
-	color.Cyan("Navigating to submit page: %s", URL)
+	logger.Info("Navigating to submit page: %s", URL)
 	if err := c.mcpClient.Navigate(ctx, URL); err != nil {
 		return fmt.Errorf("failed to navigate to submit page: %w", err)
 	}
@@ -35,7 +36,7 @@ func (c *Client) SubmitWithBrowser(info Info, langID, source string) (err error)
 	time.Sleep(2 * time.Second)
 
 	// Step 2: Get page content and extract CSRF token
-	color.Cyan("Extracting CSRF token...")
+	logger.Info("Extracting CSRF token...")
 	content, err := c.mcpClient.GetWebContent(ctx, URL)
 	if err != nil {
 		return fmt.Errorf("failed to get page content: %w", err)
@@ -55,7 +56,7 @@ func (c *Client) SubmitWithBrowser(info Info, langID, source string) (err error)
 	fmt.Printf("Current user: %v\n\n", handle)
 
 	// Step 3: Inject code and submit using JavaScript
-	color.Cyan("Submitting code using browser automation...")
+	logger.Info("Submitting code using browser automation...")
 
 	// Escape the source code for JavaScript
 	escapedSource := jsEscapeString(source)
@@ -149,7 +150,7 @@ func (c *Client) SubmitWithBrowser(info Info, langID, source string) (err error)
 	time.Sleep(2 * time.Second)
 
 	// Step 4: Watch submission status
-	color.Cyan("Watching submission status...")
+	logger.Info("Watching submission status...")
 	submissions, err := c.WatchSubmission(info, 1, true)
 	if err != nil {
 		return fmt.Errorf("failed to watch submission: %w", err)

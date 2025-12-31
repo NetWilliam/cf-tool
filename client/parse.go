@@ -124,7 +124,7 @@ func (c *Client) Parse(info Info) (problems []string, paths []string, err error)
 		problems = []string{problemID}
 	}
 	contestPath := info.Path()
-	ansi.Printf(color.CyanString("The problem(s) will be saved to %v\n"), color.GreenString(contestPath))
+	logger.Info("The problem(s) will be saved to %v", contestPath)
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(problems))
