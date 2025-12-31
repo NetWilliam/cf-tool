@@ -35,26 +35,42 @@ We've integrated with [mcp-chrome](https://github.com/hangwin/mcp-chrome/), an i
 
 ##  Quick Start
 
-1. Install the browser extension:
-```bash
-# Install mcp-chrome-bridge
-npm install -g @hangwin/mcp-chrome-bridge
+1. Download mcp-chrome extension
+   - Download from [GitHub releases](https://github.com/hangwin/mcp-chrome/releases)
+   - Extract the downloaded file to a folder
 
-# Start the bridge
-mcp-chrome-bridge
-```
+2. Install mcp-chrome-bridge
+   ```bash
+   # Using npm
+   npm install -g @hangwin/mcp-chrome-bridge
 
-2. Verify installation:
-```bash
-cf mcp-ping  # Should return:  MCP Chrome Server is running
-cf mocka     # Should open Chrome and navigate to Codeforces
-```
+   # Or using pnpm
+   pnpm add -g @hangwin/mcp-chrome-bridge
+   ```
 
-3. Start coding:
-```bash
-cf parse 2122d    # Fetch test cases
-cf submit         # Submit your solution
-```
+3. Load Chrome Extension
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked" and select your downloaded extension folder
+   - Click the extension icon to open the plugin, then click connect to see the MCP configuration
+
+4. Start mcp-chrome-bridge
+   ```bash
+   mcp-chrome-bridge
+   ```
+   By default, it runs on `http://127.0.0.1:12306/mcp`.
+
+5. Verify installation
+   ```bash
+   cf mcp-ping  # Should return: MCP Chrome Server is running
+   cf mocka     # Should open Chrome and navigate to Codeforces
+   ```
+
+6. Start coding
+   ```bash
+   cf parse 2122d    # Fetch test cases
+   cf submit         # Submit your solution
+   ```
 
 ##  Demo
 
