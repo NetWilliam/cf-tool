@@ -41,8 +41,19 @@ var Instance *Client
 // Init initialize
 func Init(path, host, proxy string) {
 	// Check for CF_DEBUG environment variable
-	if os.Getenv("CF_DEBUG") != "" {
-		logger.SetLevel(logger.DebugLevel)
+	if debugLevel := os.Getenv("CF_DEBUG"); debugLevel != "" {
+		// Support multiple debug levels:
+		// - "debug" or "1" → DebugLevel
+		// - "info" or "2" → InfoLevel
+		// - other values → InfoLevel (default)
+		switch debugLevel {
+		case "debug", "1":
+			logger.SetLevel(logger.DebugLevel)
+		case "info", "2":
+			logger.SetLevel(logger.InfoLevel)
+		default:
+			logger.SetLevel(logger.InfoLevel)
+		}
 	}
 
 	jar, _ := cookiejar.New(nil)
