@@ -67,43 +67,116 @@ func Mocka() error {
 		return err
 	}
 
-	// Try to extract tab ID from the navigation result
+	// Format and print the navigation result
+	color.Cyan("\n📋 Navigation Result:")
+	fmt.Println(strings.Repeat("─", 60))
+
+	// Print result metadata
+	color.White("IsError: %v", result.IsError)
+	if result.Meta != nil {
+		metaJSON, _ := json.MarshalIndent(result.Meta, "  ", "  ")
+		color.White("Meta: %s", string(metaJSON))
+	}
+
+	// Print content
 	if len(result.Content) > 0 {
-		// Parse the result to find tabId
-		for _, contentItem := range result.Content {
-			if resultMap, ok := contentItem.(map[string]interface{}); ok {
-				// Look for tabId in various possible fields
-				if idVal, ok := resultMap["tabId"].(float64); ok {
-					tabID = int(idVal)
-					color.White("Captured tab ID: %d", tabID)
-					break
+		color.White("Content (%d items):", len(result.Content))
+		for i, contentItem := range result.Content {
+			color.Cyan("\n  [%d] Content Item:", i+1)
+
+			switch v := contentItem.(type) {
+			case string:
+				// Truncate long strings
+				if len(v) > 200 {
+					color.White("  Type: string (truncated)")
+					color.White("  Value: %s...", v[:200])
+				} else {
+					color.White("  Type: string")
+					color.White("  Value: %s", v)
 				}
-				if idVal, ok := resultMap["tabId"].(int); ok {
-					tabID = idVal
-					color.White("Captured tab ID: %d", tabID)
-					break
-				}
-				// Also check nested data structures
-				if data, ok := resultMap["data"].(map[string]interface{}); ok {
-					if idVal, ok := data["tabId"].(float64); ok {
-						tabID = int(idVal)
-						color.White("Captured tab ID: %d", tabID)
-						break
-					}
-					if idVal, ok := data["tabId"].(int); ok {
-						tabID = idVal
-						color.White("Captured tab ID: %d", tabID)
-						break
+
+			case map[string]interface{}:
+				color.White("  Type: map[string]interface{}")
+				// Pretty print the map
+				mapJSON, err := json.MarshalIndent(v, "  ", "    ")
+				if err == nil {
+					color.White("  Data:")
+					for _, line := range strings.Split(string(mapJSON), "\n") {
+						fmt.Println("    " + line)
 					}
 				}
-			}
-			if tabID > 0 {
-				break
+
+			default:
+				color.White("  Type: %T", v)
+				color.White("  Value: %v", v)
 			}
 		}
 	}
 
-	color.Green("✓ Opened Google\n")
+	fmt.Println(strings.Repeat("─", 60))
+
+	// Try to extract tab ID from the navigation result
+	if len(result.Content) > 0 {
+		// Parse the result to find tabId
+		for _, contentItem := range result.Content {
+			switch v := contentItem.(type) {
+			case map[string]interface{}:
+				// First try direct fields
+				if idVal, ok := v["tabId"].(float64); ok {
+					tabID = int(idVal)
+					color.Green("\n✓ Captured tab ID from map: %d", tabID)
+					break
+				}
+				if idVal, ok := v["tabId"].(int); ok {
+					tabID = idVal
+					color.Green("\n✓ Captured tab ID from map: %d", tabID)
+					break
+				}
+
+				// Check if tabId is in a nested JSON string
+				if textVal, ok := v["text"].(string); ok {
+					// Try to parse the JSON string
+					var textData map[string]interface{}
+					if err := json.Unmarshal([]byte(textVal), &textData); err == nil {
+						if idVal, ok := textData["tabId"].(float64); ok {
+							tabID = int(idVal)
+							color.Green("\n✓ Captured tab ID from text JSON: %d", tabID)
+							break
+						}
+						if idVal, ok := textData["tabId"].(int); ok {
+							tabID = idVal
+							color.Green("\n✓ Captured tab ID from text JSON: %d", tabID)
+							break
+						}
+					}
+				}
+
+				// Check nested data structures
+				if data, ok := v["data"].(map[string]interface{}); ok {
+					if idVal, ok := data["tabId"].(float64); ok {
+						tabID = int(idVal)
+						color.Green("\n✓ Captured tab ID from nested data: %d", tabID)
+						break
+					}
+					if idVal, ok := data["tabId"].(int); ok {
+						tabID = idVal
+						color.Green("\n✓ Captured tab ID from nested data: %d", tabID)
+						break
+					}
+				}
+			}
+
+			if tabID > 0 {
+				break
+			}
+		}
+
+		if tabID == 0 {
+			color.Yellow("\n⚠ Tab ID not found in navigation result, will fetch later")
+		}
+	}
+
+	color.Green("\n✓ Opened Google\n")
 
 	// Wait for page to load
 	time.Sleep(2 * time.Second)
