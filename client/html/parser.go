@@ -40,9 +40,16 @@ func ParseTestcases(body []byte) (input, output [][]byte, err error) {
 // extractTextContent extracts text content from HTML, removing all tags
 // Preserves newlines while normalizing spaces and tabs
 func extractTextContent(htmlBytes []byte) string {
-	// Remove all HTML tags
+	text := string(htmlBytes)
+
+	// CRITICAL: Replace <br> tags with newlines BEFORE removing other tags
+	// This handles both <br>, <br/>, and <br /> variants
+	brReg := regexp.MustCompile(`<br\s*/?>`)
+	text = brReg.ReplaceAllString(text, "\n")
+
+	// Remove all remaining HTML tags
 	tagReg := regexp.MustCompile(`<[^>]+>`)
-	text := tagReg.ReplaceAllString(string(htmlBytes), "")
+	text = tagReg.ReplaceAllString(text, "")
 
 	// Unescape HTML entities
 	text = html.UnescapeString(text)

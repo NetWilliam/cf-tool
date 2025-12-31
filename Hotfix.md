@@ -21,51 +21,76 @@ cat cf/contest/100/a/in1.txt
 
 ### 根本原因
 
-**文件**: `client/html/parser.go:50-51`
+**文件**: `client/html/parser.go:40-66`
 
-```go
-// Normalize whitespace
-spaceReg := regexp.MustCompile(`\s+`)
-text = spaceReg.ReplaceAllString(text, " ")  // ❌ 这行把所有空白符（包括\n）替换成空格
+**问题 1**: `<br>` 标签被直接删除（主要问题）
+
+Codeforces 的 HTML 使用 `<br />` 标签来表示换行：
+```html
+<pre>3<br />XS<br />XS<br />M<br />XL<br />S<br />XS<br /></pre>
 ```
 
-**问题分析**:
-- `\s+` 匹配任何空白字符，包括：空格、制表符、换行符 `\n`、回车符 `\r`
-- 所有连续的空白字符都被替换成单个空格 `" "`
-- 导致多行输入变成单行
+原代码直接删除所有 HTML 标签（包括 `<br />`），导致换行符丢失：
+```go
+// Remove all HTML tags
+tagReg := regexp.MustCompile(`<[^>]+>`)
+text = tagReg.ReplaceAllString(string(htmlBytes), "")  // ❌ 删除了 <br /> 标签
+```
+
+**问题 2**: `\s+` 匹配并替换换行符（次要问题，已在第一版修复）
+
+原代码使用 `\s+` 将所有空白符（包括 `\n`）替换成空格：
+```go
+spaceReg := regexp.MustCompile(`\s+`)
+text = spaceReg.ReplaceAllString(text, " ")  // ❌ 把 \n 也替换成空格
+```
 
 **示例**:
+
+HTML 输入：
 ```html
-<pre>
-1 2
-3 4
-</pre>
+<pre>3<br />XS<br />XS<br />M<br /></pre>
 ```
 
-**处理后**:
+**原代码处理（错误）**:
 ```
-"1 2 3 4"  # ❌ 错误：换行符丢失
+1. 删除所有标签: "3XSXSM"
+2. HTML unescape: "3XSXSM"
+3. \s+ 替换空白符: "3XSXSM"
+Result: "3XSXSM"  # ❌ 所有内容在一行
 ```
 
-**应该是**:
+**修复后处理（正确）**:
 ```
-"1 2\n3 4\n"  # ✅ 正确：保留换行符
+1. 替换 <br> 为 \n: "3\nXS\nXS\nM\n"
+2. 删除其他标签: "3\nXS\nXS\nM\n"
+3. HTML unescape: "3\nXS\nXS\nM\n"
+4. [ \t]+ 只替换空格/制表符: "3\nXS\nXS\nM\n"
+5. Trim 每行: "3\nXS\nXS\nM\n"
+Result: "3\nXS\nXS\nM\n"  # ✅ 换行符正确保留
 ```
 
 ### 修复方案
 
-#### 方案 1: 只替换内部空白，保留换行符（推荐）
+**关键修复**: 在删除其他 HTML 标签之前，先将 `<br>` 标签替换为换行符 `\n`
 
 ```go
 func extractTextContent(htmlBytes []byte) string {
-    // Remove all HTML tags
+    text := string(htmlBytes)
+
+    // CRITICAL: Replace <br> tags with newlines BEFORE removing other tags
+    // This handles both <br>, <br/>, and <br /> variants
+    brReg := regexp.MustCompile(`<br\s*/?>`)
+    text = brReg.ReplaceAllString(text, "\n")
+
+    // Remove all remaining HTML tags
     tagReg := regexp.MustCompile(`<[^>]+>`)
-    text := tagReg.ReplaceAllString(string(htmlBytes), "")
+    text = tagReg.ReplaceAllString(text, "")
 
     // Unescape HTML entities
     text = html.UnescapeString(text)
 
-    // ONLY replace spaces and tabs, NOT newlines
+    // ONLY replace spaces and tabs, NOT newlines or carriage returns
     spaceReg := regexp.MustCompile(`[ \t]+`)
     text = spaceReg.ReplaceAllString(text, " ")
 
@@ -76,8 +101,8 @@ func extractTextContent(htmlBytes []byte) string {
     }
     text = strings.Join(lines, "\n")
 
-    // Trim leading/trailing whitespace but keep final newline if present
-    text = strings.TrimRight(text, " \t")
+    // Trim leading/trailing whitespace (spaces/tabs) but keep structure
+    text = strings.Trim(text, " \t\r")
 
     return text
 }
@@ -302,11 +327,25 @@ func (c *Client) Submit(info Info, langID, source string) (err error) {
 
 **测试结果**:
 ```bash
+$ cf parse 1000 a
+
 # 修复前（错误）
-"1 2 3 4 5 6"  # 所有内容在一行
+in1.txt: "3XSXSMXLSXS"  # 所有内容在一行
 
 # 修复后（正确）
-"1 2\n3 4\n5 6\n"  # 换行符正确保留
+in1.txt:
+3
+XS
+XS
+M
+XL
+S
+XS
+
+# 验证字节内容
+$ od -c cf/contest/1000/a/in1.txt
+0000000   3  \n   X   S  \n   X   S  \n   M  \n   X   L  \n   S  \n   X
+0000020   S  \n  \n
 ```
 
 ### Bug #2: 未选择题目
@@ -344,6 +383,7 @@ $ cf submit 101 a
 
 1. **client/html/parser.go**
    - 修改 `extractTextContent()` 函数
+   - **关键修复**: 添加 `<br>` 标签处理，在删除其他标签前先替换为 `\n`
    - 将 `\s+` 改为 `[ \t]+`，只替换空格和制表符，保留换行符
    - 添加逐行 trim 逻辑
 
@@ -375,12 +415,17 @@ $ cf submit 101 a
 
 ```bash
 commit: HOTFIX - Fix critical bugs in parse and submit
-1. HTML parser: Preserve newlines in test cases (Bug #1)
+1. HTML parser: Handle <br> tags to preserve newlines (Bug #1)
 2. Browser submit: Select problem before submitting (Bug #2)
 3. Browser submit: Convert problemID to uppercase (a → A)
 ```
 
+**关键发现**: Bug #1 的真正原因是 HTML 中使用 `<br />` 标签表示换行，而不是 `\n` 字符。
+必须在删除其他 HTML 标签之前先将 `<br>` 替换为换行符。
+
 ---
 
-**最后更新**: 2025-12-31 20:10
-**状态**: ✅ 所有关键 bug 已修复并测试通过（包括大写转换）
+**最后更新**: 2025-12-31 20:15
+**状态**: ✅ 所有关键 bug 已修复并测试通过
+- Bug #1: HTML parser 正确处理 `<br>` 标签保留换行符
+- Bug #2: 提交时正确选择题目并转换为大写
