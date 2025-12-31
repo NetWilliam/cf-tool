@@ -2,14 +2,14 @@ package client
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 
 	"github.com/fatih/color"
-	"github.com/xalanq/cf-tool/cookiejar"
+	"github.com/NetWilliam/cf-tool/cookiejar"
 )
 
 // Client codeforces client
@@ -63,7 +63,7 @@ func (c *Client) load() (err error) {
 	}
 	defer file.Close()
 
-	bytes, err := ioutil.ReadAll(file)
+	bytes, err := io.ReadAll(file)
 
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func (c *Client) save() (err error) {
 	data, err := json.MarshalIndent(c, "", "  ")
 	if err == nil {
 		os.MkdirAll(filepath.Dir(c.path), os.ModePerm)
-		err = ioutil.WriteFile(c.path, data, 0644)
+		err = os.WriteFile(c.path, data, 0644)
 	}
 	if err != nil {
 		color.Red("Cannot save session to %v\n%v", c.path, err.Error())

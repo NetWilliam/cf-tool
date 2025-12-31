@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,7 +15,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/xalanq/cf-tool/util"
+	"github.com/NetWilliam/cf-tool/util"
 )
 
 func less(a, b string) bool {
@@ -67,7 +66,7 @@ func getLatest() (version, note, ptime, url string, size uint, err error) {
 		return
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
@@ -77,7 +76,7 @@ func getLatest() (version, note, ptime, url string, size uint, err error) {
 	note = result["body"].(string)
 	tm, _ := time.Parse("2006-01-02T15:04:05Z", result["published_at"].(string))
 	ptime = tm.In(time.Local).Format("2006-01-02 15:04")
-	url = fmt.Sprintf("https://github.com/xalanq/cf-tool/releases/download/%v/cf_%v_%v_%v.zip", version, version, goos, arch)
+	url = fmt.Sprintf("https://github.com/NetWilliam/cf-tool/releases/download/%v/cf_%v_%v_%v.zip", version, version, goos, arch)
 	assets, _ := result["assets"].([]interface{})
 	for _, tmp := range assets {
 		asset, _ := tmp.(map[string]interface{})
@@ -147,7 +146,7 @@ func upgrade(url, exePath string, size uint) (err error) {
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(io.TeeReader(resp.Body, counter))
+	data, err := io.ReadAll(io.TeeReader(resp.Body, counter))
 	ticker.Stop()
 	counter.Print()
 	fmt.Println()
@@ -163,7 +162,7 @@ func upgrade(url, exePath string, size uint) (err error) {
 	if err != nil {
 		return
 	}
-	newData, err := ioutil.ReadAll(rc)
+	newData, err := io.ReadAll(rc)
 	rc.Close()
 	if err != nil {
 		return
@@ -171,7 +170,7 @@ func upgrade(url, exePath string, size uint) (err error) {
 
 	newPath := filepath.Join(updateDir, fmt.Sprintf(".%s.new", filepath.Base(exePath)))
 	color.Cyan("Save the new one to %v", newPath)
-	if err = ioutil.WriteFile(newPath, newData, 0755); err != nil {
+	if err = os.WriteFile(newPath, newData, 0755); err != nil {
 		return
 	}
 

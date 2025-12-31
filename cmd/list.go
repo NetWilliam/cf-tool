@@ -9,7 +9,7 @@ import (
 	"github.com/fatih/color"
 	ansi "github.com/k0kubun/go-ansi"
 	"github.com/olekukonko/tablewriter"
-	"github.com/xalanq/cf-tool/client"
+	"github.com/NetWilliam/cf-tool/client"
 )
 
 // List command
@@ -28,19 +28,15 @@ func List() (err error) {
 	var buf bytes.Buffer
 	output := io.Writer(&buf)
 	table := tablewriter.NewWriter(output)
-	table.SetHeader([]string{"#", "problem", "passed", "limit", "IO"})
-	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	table.SetAlignment(tablewriter.ALIGN_CENTER)
-	table.SetCenterSeparator("|")
-	table.SetAutoWrapText(false)
+	table.Header("#", "problem", "passed", "limit", "IO")
 	for _, prob := range problems {
-		table.Append([]string{
+		table.Append(
 			prob.ID,
 			prob.Name,
 			prob.Passed,
 			prob.Limit,
 			prob.IO,
-		})
+		)
 	}
 	table.Render()
 

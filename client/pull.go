@@ -4,13 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"html"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/xalanq/cf-tool/util"
+	"github.com/NetWilliam/cf-tool/util"
 
 	"github.com/fatih/color"
 )
@@ -73,7 +72,7 @@ func (c *Client) PullCode(URL, path, ext string, rename bool) (filename string, 
 		return
 	}
 
-	err = ioutil.WriteFile(filename, []byte(code), 0644)
+	err = os.WriteFile(filename, []byte(code), 0644)
 	return
 }
 

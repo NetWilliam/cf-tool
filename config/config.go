@@ -1,14 +1,14 @@
 package config
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"os"
 	"bytes"
+	"encoding/json"
+	"io"
+	"os"
 	"path/filepath"
 
 	"github.com/fatih/color"
-	"github.com/xalanq/cf-tool/client"
+	"github.com/NetWilliam/cf-tool/client"
 )
 
 // CodeTemplate config parse code template
@@ -69,7 +69,7 @@ func (c *Config) load() (err error) {
 	}
 	defer file.Close()
 
-	bytes, err := ioutil.ReadAll(file)
+	bytes, err := io.ReadAll(file)
 
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func (c *Config) save() (err error) {
 	err = encoder.Encode(c)
 	if err == nil {
 		os.MkdirAll(filepath.Dir(c.path), os.ModePerm)
-		err = ioutil.WriteFile(c.path, data.Bytes(), 0644)
+		err = os.WriteFile(c.path, data.Bytes(), 0644)
 	}
 	if err != nil {
 		color.Red("Cannot save config to %v\n%v", c.path, err.Error())

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xalanq/cf-tool/util"
+	"github.com/NetWilliam/cf-tool/util"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/fatih/color"
@@ -115,16 +115,12 @@ func display(submissions []Submission, problemID string, first bool, maxWidth *i
 	var buf bytes.Buffer
 	output := io.Writer(&buf)
 	table := tablewriter.NewWriter(output)
-	table.SetHeader([]string{"#", "when", "problem", "lang", "status", "time", "memory"})
-	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	table.SetAlignment(tablewriter.ALIGN_CENTER)
-	table.SetCenterSeparator("|")
-	table.SetAutoWrapText(false)
+	table.Header("#", "when", "problem", "lang", "status", "time", "memory")
 	for _, sub := range submissions {
 		if problemID != "" && sub.ParseProblemIndex() != problemID {
 			continue
 		}
-		table.Append([]string{
+		table.Append(
 			sub.ParseID(),
 			sub.when,
 			sub.name,
@@ -132,7 +128,7 @@ func display(submissions []Submission, problemID string, first bool, maxWidth *i
 			sub.ParseStatus(),
 			sub.ParseTime(),
 			sub.ParseMemory(),
-		})
+		)
 	}
 	table.Render()
 

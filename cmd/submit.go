@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"io/ioutil"
+	"os"
 
-	"github.com/xalanq/cf-tool/client"
-	"github.com/xalanq/cf-tool/config"
+	"github.com/NetWilliam/cf-tool/client"
+	"github.com/NetWilliam/cf-tool/config"
 )
 
 // Submit command
@@ -17,7 +17,7 @@ func Submit() (err error) {
 		return
 	}
 
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		return
 	}

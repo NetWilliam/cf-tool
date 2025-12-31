@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,9 +10,9 @@ import (
 	"github.com/docopt/docopt-go"
 
 	"github.com/fatih/color"
-	"github.com/xalanq/cf-tool/client"
-	"github.com/xalanq/cf-tool/config"
-	"github.com/xalanq/cf-tool/util"
+	"github.com/NetWilliam/cf-tool/client"
+	"github.com/NetWilliam/cf-tool/config"
+	"github.com/NetWilliam/cf-tool/util"
 )
 
 // Eval opts
@@ -60,7 +59,7 @@ func getSampleID() (samples []string) {
 	if err != nil {
 		return
 	}
-	paths, err := ioutil.ReadDir(path)
+	paths, err := os.ReadDir(path)
 	if err != nil {
 		return
 	}
@@ -110,7 +109,7 @@ func getCode(filename string, templates []config.CodeTemplate) (codes []CodeList
 	if err != nil {
 		return
 	}
-	paths, err := ioutil.ReadDir(path)
+	paths, err := os.ReadDir(path)
 	if err != nil {
 		return
 	}
