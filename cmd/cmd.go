@@ -11,7 +11,6 @@ import (
 
 	"github.com/NetWilliam/cf-tool/client"
 	"github.com/NetWilliam/cf-tool/config"
-	"github.com/NetWilliam/cf-tool/pkg/mcp"
 	"github.com/fatih/color"
 	"github.com/NetWilliam/cf-tool/util"
 )
@@ -157,75 +156,4 @@ func getOneCode(filename string, templates []config.CodeTemplate) (name string, 
 		codes[0].Index[0] = codes[0].Index[i]
 	}
 	return codes[0].Name, codes[0].Index[0], nil
-}
-
-// executeWithLoginRetry executes a work function and retries with login if ErrorNotLogged occurs
-func executeWithLoginRetry(cln *client.Client, work func() error) error {
-	err := work()
-	if err != nil {
-		if err = loginAgain(cln, err); err == nil {
-			return work()
-		}
-	}
-	return err
-}
-
-func loginAgain(cln *client.Client, err error) error {
-	if err != nil && err.Error() == client.ErrorNotLogged {
-		color.Red("Not logged. Try to login\n")
-
-		// Check if password is configured
-		if len(cln.Password) == 0 || len(cln.HandleOrEmail) == 0 {
-			// No password configured, try browser mode
-			color.Yellow("No password configured. Attempting browser mode login...\n")
-
-			// Try to initialize browser client
-			if browserErr := tryInitBrowserClient(cln); browserErr == nil {
-				// Browser mode initialized successfully, try login
-				return cln.Login()
-			} else {
-				// Browser mode failed, prompt user to configure
-				color.Red("\n❌ Browser mode is not available.\n")
-				color.Yellow("Please configure your handle and password:\n")
-				color.Cyan("  Option 1: cf config\n")
-				color.Cyan("  Option 2: Install MCP Chrome Server for browser mode\n")
-				return errors.New("Not logged in. Please configure credentials or enable browser mode")
-			}
-		}
-
-		// Password is configured, proceed with normal login
-		err = cln.Login()
-	}
-	return err
-}
-
-// tryInitBrowserClient attempts to initialize browser client
-func tryInitBrowserClient(cln *client.Client) error {
-	// Try to find MCP server
-	serverURL, mcpPath, err := findMCPServer()
-	if err != nil {
-		return fmt.Errorf("MCP server not found: %w", err)
-	}
-
-	var mcpClient *mcp.Client
-
-	// Determine which transport to use
-	if serverURL != "" {
-		color.Cyan("Using HTTP transport: %s\n", serverURL)
-		mcpClient, err = mcp.NewClientHTTP(serverURL)
-	} else if mcpPath != "" {
-		color.Cyan("Using stdio transport: %s\n", mcpPath)
-		mcpClient, err = mcp.NewClient("node", []string{mcpPath})
-	} else {
-		return fmt.Errorf("no valid MCP server configuration found")
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to create MCP client: %w", err)
-	}
-
-	// Set MCP client and enable browser mode
-	cln.SetMCPClient(mcpClient)
-
-	return nil
 }

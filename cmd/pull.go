@@ -15,7 +15,6 @@ func Pull() (err error) {
 	if err != nil {
 		return
 	}
-	return executeWithLoginRetry(cln, func() error {
-		return cln.Pull(info, rootPath, ac)
-	})
+	err = cln.Pull(info, rootPath, ac)
+	return
 }

@@ -17,12 +17,7 @@ func List() (err error) {
 	cln := client.Instance
 	info := Args.Info
 
-	var problems []client.StatisInfo
-	err = executeWithLoginRetry(cln, func() error {
-		var e error
-		problems, e = cln.Statis(info)
-		return e
-	})
+	problems, err := cln.Statis(info)
 	if err != nil {
 		return
 	}

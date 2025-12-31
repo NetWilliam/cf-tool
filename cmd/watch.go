@@ -12,8 +12,6 @@ func Watch() (err error) {
 	if Args.All {
 		n = -1
 	}
-	return executeWithLoginRetry(cln, func() error {
-		_, err := cln.WatchSubmission(info, n, false)
-		return err
-	})
+	_, err = cln.WatchSubmission(info, n, false)
+	return
 }

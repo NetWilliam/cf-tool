@@ -16,7 +16,6 @@ func Clone() (err error) {
 	ac := Args.Accepted
 	handle := Args.Handle
 
-	return executeWithLoginRetry(cln, func() error {
-		return cln.Clone(handle, currentPath, ac)
-	})
+	err = cln.Clone(handle, currentPath, ac)
+	return
 }

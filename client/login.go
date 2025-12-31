@@ -7,16 +7,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
-	"net/url"
 	"regexp"
-	"syscall"
 
-	"github.com/fatih/color"
-	"github.com/NetWilliam/cf-tool/cookiejar"
 	"github.com/NetWilliam/cf-tool/util"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // genFtaa generate a random one
@@ -29,7 +23,7 @@ func genBfaa() string {
 	return "f1b3f18c715565b589b7823cda7448ce"
 }
 
-// ErrorNotLogged not logged in
+// ErrorNotLogged not logged in (deprecated - browser mode always logged in)
 var ErrorNotLogged = "Not logged in"
 
 // findHandle if logged return (handle, nil), else return ("", ErrorNotLogged)
@@ -49,65 +43,6 @@ func findCsrf(body []byte) (string, error) {
 		return "", errors.New("Cannot find csrf")
 	}
 	return string(tmp[1]), nil
-}
-
-// Login codeforces with handler and password
-func (c *Client) Login() (err error) {
-	// Check if browser mode is enabled
-	if c.browserEnabled {
-		color.Cyan("Using browser mode for login...\n")
-		return c.LoginWithBrowser()
-	}
-
-	// Traditional HTTP login
-	color.Cyan("Login %v...\n", c.HandleOrEmail)
-
-	password, err := c.DecryptPassword()
-	if err != nil {
-		return
-	}
-
-	jar, _ := cookiejar.New(nil)
-	c.client.Jar = jar
-	body, err := util.GetBody(c.client, c.host+"/enter")
-	if err != nil {
-		return
-	}
-
-	csrf, err := findCsrf(body)
-	if err != nil {
-		return
-	}
-
-	ftaa := genFtaa()
-	bfaa := genBfaa()
-
-	body, err = util.PostBody(c.client, c.host+"/enter", url.Values{
-		"csrf_token":    {csrf},
-		"action":        {"enter"},
-		"ftaa":          {ftaa},
-		"bfaa":          {bfaa},
-		"handleOrEmail": {c.HandleOrEmail},
-		"password":      {password},
-		"_tta":          {"176"},
-		"remember":      {"on"},
-	})
-	if err != nil {
-		return
-	}
-
-	handle, err := findHandle(body)
-	if err != nil {
-		return
-	}
-
-	c.Ftaa = ftaa
-	c.Bfaa = bfaa
-	c.Handle = handle
-	c.Jar = jar
-	color.Green("Succeed!!")
-	color.Green("Welcome %v~", handle)
-	return c.save()
 }
 
 func createHash(key string) []byte {
@@ -158,49 +93,10 @@ func decrypt(handle, password string) (ret string, err error) {
 	return
 }
 
-// DecryptPassword get real password
+// DecryptPassword get real password (deprecated - not used in browser mode)
 func (c *Client) DecryptPassword() (string, error) {
 	if len(c.Password) == 0 || len(c.HandleOrEmail) == 0 {
-		return "", errors.New("You have to configure your handle and password by `cf config`")
+		return "", errors.New("Password not configured. Browser mode uses your browser's login session.")
 	}
 	return decrypt(c.HandleOrEmail, c.Password)
-}
-
-// ConfigLogin configure handle and password
-func (c *Client) ConfigLogin() (err error) {
-	if c.Handle != "" {
-		color.Green("Current user: %v", c.Handle)
-	}
-	color.Cyan("Configure handle/email and password")
-	color.Cyan("Note: The password is invisible, just type it correctly.")
-
-	fmt.Printf("handle/email: ")
-	handleOrEmail := util.ScanlineTrim()
-
-	password := ""
-	if terminal.IsTerminal(int(syscall.Stdin)) {
-		fmt.Printf("password: ")
-		bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			fmt.Println()
-			if err.Error() == "EOF" {
-				fmt.Println("Interrupted.")
-				return nil
-			}
-			return err
-		}
-		password = string(bytePassword)
-		fmt.Println()
-	} else {
-		color.Red("Your terminal does not support the hidden password.")
-		fmt.Printf("password: ")
-		password = util.Scanline()
-	}
-
-	c.HandleOrEmail = handleOrEmail
-	c.Password, err = encrypt(handleOrEmail, password)
-	if err != nil {
-		return
-	}
-	return c.Login()
 }

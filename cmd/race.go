@@ -13,9 +13,7 @@ func Race() (err error) {
 	cln := client.Instance
 	info := Args.Info
 
-	err = executeWithLoginRetry(cln, func() error {
-		return cln.RaceContest(info)
-	})
+	err = cln.RaceContest(info)
 	if err != nil {
 		return
 	}

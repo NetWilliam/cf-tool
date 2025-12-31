@@ -37,5 +37,5 @@ func Parse() (err error) {
 		}
 		return nil
 	}
-	return executeWithLoginRetry(cln, work)
+	return work()
 }

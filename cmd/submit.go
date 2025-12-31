@@ -24,7 +24,5 @@ func Submit() (err error) {
 	source := string(bytes)
 
 	lang := cfg.Template[index].Lang
-	return executeWithLoginRetry(cln, func() error {
-		return cln.Submit(info, lang, source)
-	})
+	return cln.Submit(info, lang, source)
 }
