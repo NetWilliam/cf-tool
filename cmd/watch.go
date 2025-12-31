@@ -12,10 +12,6 @@ func Watch() (err error) {
 	if Args.All {
 		n = -1
 	}
-	if _, err = cln.WatchSubmission(info, n, false); err != nil {
-		if err = loginAgain(cln, err); err == nil {
-			_, err = cln.WatchSubmission(info, n, false)
-		}
-	}
+	_, err = cln.WatchSubmission(info, n, false)
 	return
 }

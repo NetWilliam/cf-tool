@@ -24,10 +24,5 @@ func Submit() (err error) {
 	source := string(bytes)
 
 	lang := cfg.Template[index].Lang
-	if err = cln.Submit(info, lang, source); err != nil {
-		if err = loginAgain(cln, err); err == nil {
-			err = cln.Submit(info, lang, source)
-		}
-	}
-	return
+	return cln.Submit(info, lang, source)
 }

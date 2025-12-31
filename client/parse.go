@@ -1,64 +1,43 @@
 package client
 
 import (
-	"bytes"
 	"fmt"
-	"html"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/NetWilliam/cf-tool/util"
+	"github.com/NetWilliam/cf-tool/client/html"
+	"github.com/NetWilliam/cf-tool/pkg/logger"
 
 	"github.com/k0kubun/go-ansi"
 
 	"github.com/fatih/color"
 )
 
-func findSample(body []byte) (input [][]byte, output [][]byte, err error) {
-	irg := regexp.MustCompile(`class="input"[\s\S]*?<pre>([\s\S]*?)</pre>`)
-	org := regexp.MustCompile(`class="output"[\s\S]*?<pre>([\s\S]*?)</pre>`)
-	a := irg.FindAllSubmatch(body, -1)
-	b := org.FindAllSubmatch(body, -1)
-	if a == nil || b == nil || len(a) != len(b) {
-		return nil, nil, fmt.Errorf("Cannot parse sample with input %v and output %v", len(a), len(b))
-	}
-	newline := regexp.MustCompile(`<[\s/br]+?>`)
-	filter := func(src []byte) []byte {
-		src = newline.ReplaceAll(src, []byte("\n"))
-		s := html.UnescapeString(string(src))
-		return []byte(strings.TrimSpace(s) + "\n")
-	}
-	for i := 0; i < len(a); i++ {
-		input = append(input, filter(a[i][1]))
-		output = append(output, filter(b[i][1]))
-	}
-	return
-}
-
 // ParseProblem parse problem to path. mu can be nil
 func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, standardIO bool, err error) {
-	body, err := util.GetBody(c.client, URL)
+	logger.Info("Parsing problem: URL=%s, path=%s", URL, path)
+
+	body, err := c.fetcher.Get(URL)
 	if err != nil {
+		logger.Error("Failed to fetch problem page: %s - %v", URL, err)
 		return
 	}
 
-	_, err = findHandle(body)
+	logger.Debug("Fetched problem page: size=%d bytes", len(body))
+
+	input, output, err := html.ParseTestcases(body)
 	if err != nil {
+		logger.Error("Failed to extract samples: %v", err)
 		return
 	}
 
-	input, output, err := findSample(body)
-	if err != nil {
-		return
-	}
+	logger.Info("Extracted %d sample(s)", len(input))
 
-	standardIO = true
-	if !bytes.Contains(body, []byte(`<div class="input-file"><div class="property-title">input</div>standard input</div><div class="output-file"><div class="property-title">output</div>standard output</div>`)) {
-		standardIO = false
-	}
+	standardIO = html.IsStandardIO(body)
+
+	logger.Debug("Standard IO: %v", standardIO)
 
 	for i := 0; i < len(input); i++ {
 		fileIn := filepath.Join(path, fmt.Sprintf("in%v.txt", i+1))
@@ -72,6 +51,9 @@ func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, st
 			if mu != nil {
 				mu.Unlock()
 			}
+			logger.Error("Failed to write input file %s: %v", fileIn, e)
+		} else {
+			logger.Debug("Wrote input file: %s (%d bytes)", fileIn, len(input[i]))
 		}
 		e = os.WriteFile(fileOut, output[i], 0644)
 		if e != nil {
@@ -82,8 +64,13 @@ func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, st
 			if mu != nil {
 				mu.Unlock()
 			}
+			logger.Error("Failed to write output file %s: %v", fileOut, e)
+		} else {
+			logger.Debug("Wrote output file: %s (%d bytes)", fileOut, len(output[i]))
 		}
 	}
+
+	logger.Info("Successfully parsed %d samples", len(input))
 	return len(input), standardIO, nil
 }
 
@@ -91,18 +78,27 @@ func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, st
 func (c *Client) Parse(info Info) (problems []string, paths []string, err error) {
 	color.Cyan("Parse " + info.Hint())
 
+	logger.Debug("Parse info: ProblemID=%s, ProblemType=%s", info.ProblemID, info.ProblemType)
+
 	problemID := info.ProblemID
 	info.ProblemID = "%v"
 	urlFormatter, err := info.ProblemURL(c.host)
 	if err != nil {
+		logger.Error("Failed to build ProblemURL: %v", err)
 		return
 	}
 	info.ProblemID = ""
+
+	logger.Debug("URL formatter: %s", urlFormatter)
+
 	if problemID == "" {
+		logger.Info("No problemID specified, fetching problem list from contest page...")
 		statics, err := c.Statis(info)
 		if err != nil {
+			logger.Error("Failed to get problem statistics: %v", err)
 			return nil, nil, err
 		}
+		logger.Info("Found %d problems in contest", len(statics))
 		problems = make([]string, len(statics))
 		for i, problem := range statics {
 			problems[i] = problem.ID
@@ -111,7 +107,7 @@ func (c *Client) Parse(info Info) (problems []string, paths []string, err error)
 		problems = []string{problemID}
 	}
 	contestPath := info.Path()
-	ansi.Printf(color.CyanString("The problem(s) will be saved to %v\n"), color.GreenString(contestPath))
+	logger.Info("The problem(s) will be saved to %v", contestPath)
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(problems))

@@ -9,8 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/NetWilliam/cf-tool/util"
-
+	"github.com/NetWilliam/cf-tool/pkg/logger"
 	"github.com/fatih/color"
 )
 
@@ -52,7 +51,7 @@ func (c *Client) PullCode(URL, path, ext string, rename bool) (filename string, 
 		return "", errors.New(ErrorSkip)
 	}
 
-	body, err := util.GetBody(c.client, URL)
+	body, err := c.fetcher.Get(URL)
 	if err != nil {
 		return
 	}
@@ -134,7 +133,7 @@ func (c *Client) Pull(info Info, rootPath string, ac bool) (err error) {
 		return errors.New("Cannot find any code to save")
 	}
 
-	color.Cyan("These submissions' codes have been saved.")
+	logger.Info("These submissions' codes have been saved.")
 	maxline := 0
 	display(used, "", true, &maxline, false)
 	return nil

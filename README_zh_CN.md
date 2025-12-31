@@ -48,6 +48,51 @@ $ go build -ldflags "-s -w" cf.go
 
 如果你不知道 `$GOPATH` 是什么，请看一下这篇文章 <https://github.com/golang/go/wiki/GOPATH>.
 
+### 浏览器模式（推荐）
+
+cf-tool 现已支持**浏览器模式**用于解析和提交，可以绕过 Cloudflare 保护并提供更好的稳定性。
+
+**必需组件**：[mcp-chrome](https://github.com/hangwin/mcp-chrome/) - 一个通过 MCP 暴露 Chrome DevTools Protocol 的 Chrome 扩展。
+
+#### 安装步骤
+
+1. **安装 mcp-chrome 扩展**
+   - 从 [Chrome 网上应用店](https://chromewebstore.google.com/detail/mcp-chrome/idjnlhbcijbgdhejbbggojflijaggpj) 下载
+   - 或从 [GitHub releases](https://github.com/hangwin/mcp-chrome/releases) 加载未打包的扩展
+
+2. **安装 mcp-chrome-bridge**
+   ```bash
+   # 使用 npm（推荐）
+   npm install -g @hangwin/mcp-chrome-bridge
+
+   # 或使用 yarn
+   yarn global add @hangwin/mcp-chrome-bridge
+   ```
+
+3. **启动 mcp-chrome-bridge**
+   ```bash
+   mcp-chrome-bridge
+   ```
+   默认运行在 `http://127.0.0.1:12306/mcp`。
+
+4. **验证安装**
+   ```bash
+   # 测试 MCP 连接
+   cf mcp-ping
+
+   # 测试浏览器自动化
+   cf mocka
+   ```
+
+   **重要提示**：在使用 cf-tool 之前，请确保两个命令都成功运行！
+
+   - `cf mcp-ping` 应该返回：`✅ MCP Chrome Server is running`
+   - `cf mocka` 应该打开 Chrome 并导航到 Codeforces
+
+**注意**：新版本的 `cf parse` 和 `cf submit` 命令**必须**使用浏览器模式。
+
+更多关于 mcp-chrome 的详情，请访问：https://github.com/hangwin/mcp-chrome/
+
 ## 使用方法
 
 以下简单模拟一场比赛的流程。

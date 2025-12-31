@@ -1,91 +1,64 @@
 package client
 
 import (
+	"context"
 	"errors"
-	"fmt"
-	"net/url"
-	"regexp"
-	"strings"
+	"time"
 
-	"github.com/NetWilliam/cf-tool/util"
+	"github.com/NetWilliam/cf-tool/client/browser"
+	"github.com/NetWilliam/cf-tool/pkg/logger"
 
 	"github.com/fatih/color"
 )
-
-func findErrorMessage(body []byte) (string, error) {
-	reg := regexp.MustCompile(`error[a-zA-Z_\-\ ]*">(.*?)</span>`)
-	tmp := reg.FindSubmatch(body)
-	if tmp == nil {
-		return "", errors.New("Cannot find error")
-	}
-	return string(tmp[1]), nil
-}
 
 // Submit submit (block while pending)
 func (c *Client) Submit(info Info, langID, source string) (err error) {
 	color.Cyan("Submit " + info.Hint())
 
+	logger.Info("Submitting code: problem=%s, langID=%s, sourceSize=%d bytes",
+		info.Hint(), langID, len(source))
+
 	URL, err := info.SubmitURL(c.host)
 	if err != nil {
+		logger.Error("Failed to build submit URL: %v", err)
 		return
 	}
 
-	body, err := util.GetBody(c.client, URL)
-	if err != nil {
-		return
+	logger.Debug("Submit URL: %s", URL)
+
+	// Check if we have browser mode available
+	if !c.browserEnabled || c.mcpClient == nil {
+		return errors.New("Browser mode is required for submit. Please ensure MCP Chrome Server is running.")
 	}
 
-	handle, err := findHandle(body)
-	if err != nil {
-		return
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	// Use browser automation to submit
+	if err := browser.SubmitCode(ctx, c.mcpClient, URL, langID, source, info.ProblemID); err != nil {
+		logger.Error("Failed to submit: %v", err)
+		return err
 	}
 
-	fmt.Printf("Current user: %v\n", handle)
-
-	csrf, err := findCsrf(body)
-	if err != nil {
-		return
-	}
-
-	body, err = util.PostBody(c.client, fmt.Sprintf("%v?csrf_token=%v", URL, csrf), url.Values{
-		"csrf_token":            {csrf},
-		"ftaa":                  {c.Ftaa},
-		"bfaa":                  {c.Bfaa},
-		"action":                {"submitSolutionFormSubmitted"},
-		"submittedProblemIndex": {info.ProblemID},
-		"programTypeId":         {langID},
-		"contestId":             {info.ContestID},
-		"source":                {source},
-		"tabSize":               {"4"},
-		"_tta":                  {"594"},
-		"sourceCodeConfirmed":   {"true"},
-	})
-	if err != nil {
-		return
-	}
-
-	errMsg, err := findErrorMessage(body)
-	if err == nil {
-		return errors.New(errMsg)
-	}
-
-	msg, err := findMessage(body)
-	if err != nil {
-		return errors.New("Submit failed")
-	}
-	if !strings.Contains(msg, "submitted successfully") {
-		return errors.New(msg)
-	}
-
+	logger.Info("Code submitted successfully")
 	color.Green("Submitted")
+
+	// Watch submission status
+	// Add delay to ensure submission appears in the list
+	logger.Info("Waiting for submission to appear in submission list...")
+	time.Sleep(2 * time.Second)
 
 	submissions, err := c.WatchSubmission(info, 1, true)
 	if err != nil {
-		return
+		logger.Error("Failed to watch submission: %v", err)
+		logger.Warning("Submit was successful, but monitoring failed. You can check the status manually.")
+		// Don't return error - the submission was successful
+		return nil
 	}
 
 	info.SubmissionID = submissions[0].ParseID()
-	c.Handle = handle
 	c.LastSubmission = &info
+
+	logger.Info("Submission saved: ID=%s", info.SubmissionID)
 	return c.save()
 }

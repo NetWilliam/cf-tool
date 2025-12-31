@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/NetWilliam/cf-tool/util"
-
 	"github.com/fatih/color"
 	ansi "github.com/k0kubun/go-ansi"
 )
@@ -40,12 +38,7 @@ func (c *Client) RaceContest(info Info) (err error) {
 
 	URL = URL + "/countdown"
 
-	body, err := util.GetBody(c.client, URL)
-	if err != nil {
-		return
-	}
-
-	_, err = findHandle(body)
+	body, err := c.fetcher.Get(URL)
 	if err != nil {
 		return
 	}

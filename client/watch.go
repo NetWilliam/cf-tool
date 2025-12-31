@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NetWilliam/cf-tool/util"
+	"github.com/NetWilliam/cf-tool/pkg/logger"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/fatih/color"
@@ -239,35 +239,45 @@ func parseSubmission(body []byte, cfOffset string) (ret Submission, err error) {
 }
 
 func (c *Client) getSubmissions(URL string, n int) (submissions []Submission, err error) {
-	body, err := util.GetBody(c.client, URL)
+	logger.Debug("Fetching submissions: URL=%s, count=%d", URL, n)
+
+	body, err := c.fetcher.Get(URL)
 	if err != nil {
+		logger.Error("Failed to fetch submissions page: %v", err)
 		return
 	}
 
-	if _, err = findHandle(body); err != nil {
-		return
-	}
+	logger.Debug("Fetched submissions page: size=%d bytes", len(body))
 
 	cfOffset, err := findCfOffset(body)
 	if err != nil {
-		return
+		logger.Warning("Failed to find CF UTC offset: %v", err)
 	}
+
+	logger.Debug("CF UTC offset: %s", cfOffset)
 
 	submissionsBody, err := findSubmission(body, n)
 	if err != nil {
+		logger.Error("Failed to find submissions: %v", err)
 		return
 	}
+
+	logger.Debug("Found %d submission(s)", len(submissionsBody))
 
 	for _, submissionBody := range submissionsBody {
 		if submission, err := parseSubmission(submissionBody, cfOffset); err == nil {
 			submissions = append(submissions, submission)
+			logger.Debug("Parsed submission: ID=%d, problem=%s, status=%s",
+				submission.id, submission.name, submission.status)
 		}
 	}
 
 	if len(submissions) < 1 {
+		logger.Error("No valid submissions found")
 		return nil, errors.New("Cannot find any submission")
 	}
 
+	logger.Info("Successfully parsed %d submission(s)", len(submissions))
 	return
 }
 

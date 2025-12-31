@@ -9,9 +9,9 @@ import (
 
 	"github.com/docopt/docopt-go"
 
-	"github.com/fatih/color"
 	"github.com/NetWilliam/cf-tool/client"
 	"github.com/NetWilliam/cf-tool/config"
+	"github.com/fatih/color"
 	"github.com/NetWilliam/cf-tool/util"
 )
 
@@ -50,6 +50,12 @@ func Eval(opts docopt.Opts) error {
 		return Clone()
 	} else if Args.Upgrade {
 		return Upgrade()
+	} else if Args.McpPing {
+		return McpPing()
+	} else if Args.Mocka {
+		return Mocka()
+	} else if Args.LogTest {
+		return LogTest()
 	}
 	return nil
 }
@@ -150,12 +156,4 @@ func getOneCode(filename string, templates []config.CodeTemplate) (name string, 
 		codes[0].Index[0] = codes[0].Index[i]
 	}
 	return codes[0].Name, codes[0].Index[0], nil
-}
-
-func loginAgain(cln *client.Client, err error) error {
-	if err != nil && err.Error() == client.ErrorNotLogged {
-		color.Red("Not logged. Try to login\n")
-		err = cln.Login()
-	}
-	return err
 }

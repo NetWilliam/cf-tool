@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NetWilliam/cf-tool/pkg/logger"
 	"github.com/fatih/color"
-	"github.com/NetWilliam/cf-tool/util"
 )
 
 type cloneData struct {
@@ -21,18 +21,7 @@ type cloneData struct {
 func (c *Client) Clone(handle, rootPath string, ac bool) (err error) {
 	color.Cyan("Clone all codes of %v. Only Accepted: %v", handle, ac)
 
-	if handle == c.Handle {
-		body, err := util.GetBody(c.client, c.host)
-		if err != nil {
-			return err
-		}
-
-		if _, err = findHandle(body); err != nil {
-			return err
-		}
-	}
-
-	data, err := util.GetJSONBody(c.client, fmt.Sprintf(c.host+"/api/user.status?handle=%v", handle))
+	data, err := c.fetcher.GetJSON(fmt.Sprintf(c.host+"/api/user.status?handle=%v", handle))
 	if err != nil {
 		return
 	}
@@ -43,7 +32,7 @@ func (c *Client) Clone(handle, rootPath string, ac bool) (err error) {
 	submissions := data["result"].([]interface{})
 	total := len(submissions)
 	count := 0
-	color.Cyan("Total submissions: %v", total)
+	logger.Info("Total submissions: %v", total)
 
 	threadNumber := 16
 	ch := make(chan cloneData, threadNumber)

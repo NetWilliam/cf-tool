@@ -5,7 +5,6 @@ import (
 	"regexp"
 
 	"github.com/fatih/color"
-	"github.com/NetWilliam/cf-tool/client"
 	"github.com/NetWilliam/cf-tool/util"
 )
 
@@ -93,7 +92,10 @@ func (c *Config) SetFolderName() (err error) {
 	if value := util.ScanlineTrim(); value != "" {
 		c.FolderName["root"] = value
 	}
-	for _, problemType := range client.ProblemTypes {
+
+	// Problem types - defined locally to avoid circular import
+	problemTypes := []string{"contest", "gym", "problemset", "edu"}
+	for _, problemType := range problemTypes {
 		color.Green(`%v path (current: %v)`, problemType, c.FolderName[problemType])
 		if value := util.ScanlineTrim(); value != "" {
 			c.FolderName[problemType] = value
