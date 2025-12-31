@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/NetWilliam/cf-tool/pkg/logger"
 	"github.com/NetWilliam/cf-tool/cookiejar"
 	"github.com/NetWilliam/cf-tool/pkg/mcp"
 )
@@ -58,17 +59,19 @@ func Init(path, host, proxy string) {
 	c.client = &http.Client{Jar: c.Jar, Transport: &http.Transport{Proxy: Proxy}}
 
 	// Try to initialize browser mode (will auto-detect MCP server)
-	color.Cyan("Initializing browser mode...\n")
+	logger.Info("Initializing browser mode...\n")
 	if err := c.initBrowserMode(); err != nil {
-		color.Yellow("Browser mode not available: %v\n", err)
-		color.Cyan("Falling back to HTTP mode. Some features may not work.\n")
+		logger.Warning("Browser mode not available: %v\n", err)
+		logger.Info("Falling back to HTTP mode. Some features may not work.\n")
 		c.fetcher = NewHTTPFetcher(c.client)
 	}
 
 	// Try to load user info from profile page
+    /*
 	if c.browserEnabled {
 		c.loadUserInfoFromBrowser()
 	}
+    */
 
 	if err := c.save(); err != nil {
 		color.Red(err.Error())
@@ -88,7 +91,7 @@ func (c *Client) initBrowserMode() error {
 
 	// Determine which transport to use
 	if serverURL != "" {
-		color.Cyan("Using HTTP transport: %s\n", serverURL)
+		logger.Info("Using HTTP transport: %s\n", serverURL)
 		mcpClient, err = mcp.NewClientHTTP(serverURL)
 	} else if mcpPath != "" {
 		color.Cyan("Using stdio transport: %s\n", mcpPath)
@@ -101,7 +104,7 @@ func (c *Client) initBrowserMode() error {
 
 	// Set MCP client and enable browser mode
 	c.SetMCPClient(mcpClient)
-	color.Green("✓ Browser mode enabled\n")
+	logger.Info("✓ Browser mode enabled\n")
 
 	return nil
 }
@@ -125,7 +128,7 @@ func findMCPServer() (serverURL, mcpPath string, err error) {
 
 // loadUserInfoFromBrowser loads user handle and email from profile page
 func (c *Client) loadUserInfoFromBrowser() {
-	color.Cyan("Loading user info from browser...\n")
+	logger.Info("Loading user info from browser...\n")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
