@@ -1,0 +1,117 @@
+package mcp
+
+import (
+	"context"
+	"fmt"
+)
+
+// ToolNames defines constants for MCP Chrome tools
+type ToolNames struct {
+	GetWindowsAndTabs     string
+	Navigate              string
+	GetWebContent         string
+	NetworkRequest        string
+	NetworkCaptureStart   string
+	NetworkCaptureStop    string
+	FillOrSelect          string
+	ClickElement          string
+	Keyboard              string
+}
+
+// ChromeTools contains Chrome MCP tool names
+var ChromeTools = ToolNames{
+	GetWindowsAndTabs:  "get_windows_and_tabs",
+	Navigate:           "chrome_navigate",
+	GetWebContent:      "chrome_get_web_content",
+	NetworkRequest:     "chrome_network_request",
+	NetworkCaptureStart: "chrome_network_capture_start",
+	NetworkCaptureStop: "chrome_network_capture_stop",
+	FillOrSelect:       "chrome_fill_or_select",
+	ClickElement:       "chrome_click_element",
+	Keyboard:           "chrome_keyboard",
+}
+
+// Helper functions for common tool calls
+
+// Navigate navigates to a URL
+func (c *Client) Navigate(ctx context.Context, url string) error {
+	_, err := c.CallTool(ctx, ChromeTools.Navigate, map[string]interface{}{
+		"url": url,
+	})
+	return err
+}
+
+// GetWebContent gets the text content of a page
+func (c *Client) GetWebContent(ctx context.Context, url string) (string, error) {
+	result, err := c.CallTool(ctx, ChromeTools.GetWebContent, map[string]interface{}{
+		"url":         url,
+		"textContent": true,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Content) == 0 {
+		return "", fmt.Errorf("no content returned")
+	}
+
+	// Extract text from content
+	if text, ok := result.Content[0].(map[string]interface{}); ok {
+		if content, ok := text["text"].(string); ok {
+			return content, nil
+		}
+	}
+
+	return "", fmt.Errorf("unexpected content format")
+}
+
+// NetworkRequest sends a network request
+type NetworkRequestOptions struct {
+	URL     string
+	Method  string
+	Headers map[string]string
+	Body    interface{}
+}
+
+func (c *Client) NetworkRequest(ctx context.Context, opts *NetworkRequestOptions) (*ToolResult, error) {
+	args := map[string]interface{}{
+		"url": opts.URL,
+	}
+
+	if opts.Method != "" {
+		args["method"] = opts.Method
+	}
+	if opts.Headers != nil {
+		args["headers"] = opts.Headers
+	}
+	if opts.Body != nil {
+		args["body"] = opts.Body
+	}
+
+	return c.CallTool(ctx, ChromeTools.NetworkRequest, args)
+}
+
+// Fill fills a form element
+func (c *Client) Fill(ctx context.Context, selector, value string) error {
+	_, err := c.CallTool(ctx, ChromeTools.FillOrSelect, map[string]interface{}{
+		"selector": selector,
+		"value":    value,
+	})
+	return err
+}
+
+// Click clicks an element
+func (c *Client) Click(ctx context.Context, selector string) error {
+	_, err := c.CallTool(ctx, ChromeTools.ClickElement, map[string]interface{}{
+		"selector": selector,
+	})
+	return err
+}
+
+// Keyboard sends keyboard input
+func (c *Client) Keyboard(ctx context.Context, keys string) error {
+	_, err := c.CallTool(ctx, ChromeTools.Keyboard, map[string]interface{}{
+		"keys": keys,
+	})
+	return err
+}

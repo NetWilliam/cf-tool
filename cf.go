@@ -29,6 +29,7 @@ If you want to compete, the best command is "cf race"
 
 Usage:
   cf config
+  cf mcp-ping
   cf submit [-f <file>] [<specifier>...]
   cf list [<specifier>...]
   cf parse [<specifier>...]
@@ -42,6 +43,8 @@ Usage:
   cf pull [ac] [<specifier>...]
   cf clone [ac] [<handle>]
   cf upgrade
+
+  cf mcp-ping           Test MCP Chrome server connection and list available tools.
 
 Options:
   -h --help            Show this screen.

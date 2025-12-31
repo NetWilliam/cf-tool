@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/fatih/color"
-	"github.com/NetWilliam/cf-tool/client"
 )
 
 // CodeTemplate config parse code template
@@ -30,7 +29,32 @@ type Config struct {
 	Host          string            `json:"host"`
 	Proxy         string            `json:"proxy"`
 	FolderName    map[string]string `json:"folder_name"`
+	Browser       BrowserConfig     `json:"browser"`
 	path          string
+}
+
+// BrowserConfig configuration for browser mode
+type BrowserConfig struct {
+	// Whether browser mode is enabled
+	Enabled bool `json:"enabled"`
+
+	// MCP transport type: "stdio" or "http"
+	Transport string `json:"mcp_transport"`
+
+	// MCP server command (for stdio transport)
+	Command string `json:"mcp_command"`
+
+	// MCP server arguments (for stdio transport)
+	Args []string `json:"mcp_args"`
+
+	// MCP server URL (for HTTP transport)
+	ServerURL string `json:"mcp_server_url"`
+
+	// Auto login (false = manual login in browser)
+	AutoLogin bool `json:"auto_login"`
+
+	// Fallback to HTTP if browser fails
+	FallbackToHTTP bool `json:"fallback_to_http"`
 }
 
 // Instance global configuration
@@ -38,7 +62,20 @@ var Instance *Config
 
 // Init initialize
 func Init(path string) {
-	c := &Config{path: path, Host: "https://codeforces.com", Proxy: ""}
+	c := &Config{
+		path:   path,
+		Host:   "https://codeforces.com",
+		Proxy:  "",
+		Browser: BrowserConfig{
+			Enabled:        false,
+			Transport:      "http",
+			Command:        "node",
+			Args:           []string{},
+			ServerURL:      "http://127.0.0.1:12306/mcp",
+			AutoLogin:      false,
+			FallbackToHTTP: false,
+		},
+	}
 	if err := c.load(); err != nil {
 		color.Red(err.Error())
 		color.Green("Create a new configuration in %v", path)
@@ -52,7 +89,9 @@ func Init(path string) {
 	if _, ok := c.FolderName["root"]; !ok {
 		c.FolderName["root"] = "cf"
 	}
-	for _, problemType := range client.ProblemTypes {
+	// Default problem types
+	problemTypes := []string{"contest", "gym", "problemset", "edu"}
+	for _, problemType := range problemTypes {
 		if _, ok := c.FolderName[problemType]; !ok {
 			c.FolderName[problemType] = problemType
 		}

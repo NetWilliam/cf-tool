@@ -10,6 +10,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/NetWilliam/cf-tool/cookiejar"
+	"github.com/NetWilliam/cf-tool/pkg/mcp"
 )
 
 // Client codeforces client
@@ -25,6 +26,8 @@ type Client struct {
 	proxy          string
 	path           string
 	client         *http.Client
+	mcpClient      *mcp.Client    `json:"-"` // MCP client for browser mode
+	browserEnabled bool           `json:"-"` // Whether browser mode is enabled
 }
 
 // Instance global client
@@ -33,7 +36,7 @@ var Instance *Client
 // Init initialize
 func Init(path, host, proxy string) {
 	jar, _ := cookiejar.New(nil)
-	c := &Client{Jar: jar, LastSubmission: nil, path: path, host: host, proxy: proxy, client: nil}
+	c := &Client{Jar: jar, LastSubmission: nil, path: path, host: host, proxy: proxy, client: nil, browserEnabled: false}
 	if err := c.load(); err != nil {
 		color.Red(err.Error())
 		color.Green("Create a new session in %v", path)

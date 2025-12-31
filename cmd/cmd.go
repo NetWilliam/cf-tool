@@ -50,6 +50,8 @@ func Eval(opts docopt.Opts) error {
 		return Clone()
 	} else if Args.Upgrade {
 		return Upgrade()
+	} else if Args.McpPing {
+		return McpPing()
 	}
 	return nil
 }

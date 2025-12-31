@@ -53,6 +53,13 @@ func findCsrf(body []byte) (string, error) {
 
 // Login codeforces with handler and password
 func (c *Client) Login() (err error) {
+	// Check if browser mode is enabled
+	if c.browserEnabled {
+		color.Cyan("Using browser mode for login...\n")
+		return c.LoginWithBrowser()
+	}
+
+	// Traditional HTTP login
 	color.Cyan("Login %v...\n", c.HandleOrEmail)
 
 	password, err := c.DecryptPassword()
