@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"html"
 	"os"
@@ -10,8 +9,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-
-	"github.com/NetWilliam/cf-tool/util"
 
 	"github.com/k0kubun/go-ansi"
 
@@ -41,21 +38,9 @@ func findSample(body []byte) (input [][]byte, output [][]byte, err error) {
 
 // ParseProblem parse problem to path. mu can be nil
 func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, standardIO bool, err error) {
-	var body []byte
-
-	// Use browser mode if enabled
-	if c.browserEnabled && c.mcpClient != nil {
-		content, err := c.mcpClient.GetWebContent(context.Background(), URL)
-		if err != nil {
-			return 0, false, fmt.Errorf("browser request failed: %w", err)
-		}
-		body = []byte(content)
-	} else {
-		// Use traditional HTTP client
-		body, err = util.GetBody(c.client, URL)
-		if err != nil {
-			return
-		}
+	body, err := c.fetcher.Get(URL)
+	if err != nil {
+		return
 	}
 
 	_, err = findHandle(body)

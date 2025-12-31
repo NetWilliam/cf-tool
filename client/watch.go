@@ -3,7 +3,6 @@ package client
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/NetWilliam/cf-tool/util"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/fatih/color"
@@ -240,21 +237,9 @@ func parseSubmission(body []byte, cfOffset string) (ret Submission, err error) {
 }
 
 func (c *Client) getSubmissions(URL string, n int) (submissions []Submission, err error) {
-	var body []byte
-
-	// Use browser mode if enabled
-	if c.browserEnabled && c.mcpClient != nil {
-		content, err := c.mcpClient.GetWebContent(context.Background(), URL)
-		if err != nil {
-			return nil, fmt.Errorf("browser request failed: %w", err)
-		}
-		body = []byte(content)
-	} else {
-		// Use traditional HTTP client
-		body, err = util.GetBody(c.client, URL)
-		if err != nil {
-			return
-		}
+	body, err := c.fetcher.Get(URL)
+	if err != nil {
+		return
 	}
 
 	if _, err = findHandle(body); err != nil {

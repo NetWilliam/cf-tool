@@ -136,6 +136,10 @@ func (c *Client) InitBrowserClient(command string, args []string) error {
 
 	c.mcpClient = mcpClient
 	c.browserEnabled = true
+
+	// Initialize browser fetcher
+	c.fetcher = NewBrowserFetcher(mcpClient)
+
 	return nil
 }
 

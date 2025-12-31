@@ -26,8 +26,9 @@ type Client struct {
 	proxy          string
 	path           string
 	client         *http.Client
-	mcpClient      *mcp.Client    `json:"-"` // MCP client for browser mode
-	browserEnabled bool           `json:"-"` // Whether browser mode is enabled
+	mcpClient      *mcp.Client    `json:"-"`      // MCP client for browser mode
+	browserEnabled bool           `json:"-"`      // Whether browser mode is enabled
+	fetcher        Fetcher        `json:"-"`      // Unified fetcher interface
 }
 
 // Instance global client
@@ -52,6 +53,10 @@ func Init(path, host, proxy string) {
 		}
 	}
 	c.client = &http.Client{Jar: c.Jar, Transport: &http.Transport{Proxy: Proxy}}
+
+	// Initialize HTTP fetcher by default
+	c.fetcher = NewHTTPFetcher(c.client)
+
 	if err := c.save(); err != nil {
 		color.Red(err.Error())
 	}

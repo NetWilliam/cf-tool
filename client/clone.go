@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -23,20 +22,9 @@ func (c *Client) Clone(handle, rootPath string, ac bool) (err error) {
 	color.Cyan("Clone all codes of %v. Only Accepted: %v", handle, ac)
 
 	if handle == c.Handle {
-		var body []byte
-		// Use browser mode if enabled
-		if c.browserEnabled && c.mcpClient != nil {
-			content, err := c.mcpClient.GetWebContent(context.Background(), c.host)
-			if err != nil {
-				return fmt.Errorf("browser request failed: %w", err)
-			}
-			body = []byte(content)
-		} else {
-			// Use traditional HTTP client
-			body, err = util.GetBody(c.client, c.host)
-			if err != nil {
-				return err
-			}
+		body, err := c.fetcher.Get(c.host)
+		if err != nil {
+			return err
 		}
 
 		if _, err = findHandle(body); err != nil {
