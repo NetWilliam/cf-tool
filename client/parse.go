@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/NetWilliam/cf-tool/pkg/logger"
+
 	"github.com/k0kubun/go-ansi"
 
 	"github.com/fatih/color"
@@ -38,25 +40,38 @@ func findSample(body []byte) (input [][]byte, output [][]byte, err error) {
 
 // ParseProblem parse problem to path. mu can be nil
 func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, standardIO bool, err error) {
+	logger.Info("Parsing problem: URL=%s, path=%s", URL, path)
+
 	body, err := c.fetcher.Get(URL)
 	if err != nil {
+		logger.Error("Failed to fetch problem page: %s - %v", URL, err)
 		return
 	}
+
+	logger.Debug("Fetched problem page: size=%d bytes", len(body))
 
 	_, err = findHandle(body)
 	if err != nil {
+		logger.Warning("Not logged in while parsing: %s", URL)
 		return
 	}
 
+	logger.Debug("User is logged in")
+
 	input, output, err := findSample(body)
 	if err != nil {
+		logger.Error("Failed to extract samples: %v", err)
 		return
 	}
+
+	logger.Info("Extracted %d sample(s)", len(input))
 
 	standardIO = true
 	if !bytes.Contains(body, []byte(`<div class="input-file"><div class="property-title">input</div>standard input</div><div class="output-file"><div class="property-title">output</div>standard output</div>`)) {
 		standardIO = false
 	}
+
+	logger.Debug("Standard IO: %v", standardIO)
 
 	for i := 0; i < len(input); i++ {
 		fileIn := filepath.Join(path, fmt.Sprintf("in%v.txt", i+1))
@@ -70,6 +85,9 @@ func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, st
 			if mu != nil {
 				mu.Unlock()
 			}
+			logger.Error("Failed to write input file %s: %v", fileIn, e)
+		} else {
+			logger.Debug("Wrote input file: %s (%d bytes)", fileIn, len(input[i]))
 		}
 		e = os.WriteFile(fileOut, output[i], 0644)
 		if e != nil {
@@ -80,8 +98,13 @@ func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, st
 			if mu != nil {
 				mu.Unlock()
 			}
+			logger.Error("Failed to write output file %s: %v", fileOut, e)
+		} else {
+			logger.Debug("Wrote output file: %s (%d bytes)", fileOut, len(output[i]))
 		}
 	}
+
+	logger.Info("Successfully parsed %d samples", len(input))
 	return len(input), standardIO, nil
 }
 
