@@ -85,6 +85,10 @@ func extractTextContent(htmlBytes []byte) string {
 	// STEP 7: Trim leading/trailing whitespace but keep structure
 	text = strings.Trim(text, " \t\r")
 
+	// STEP 8: Remove trailing newlines to avoid double newlines
+	// ParseTestcases will add "\n" at the end, so we trim trailing \n here
+	text = strings.TrimRight(text, "\n\r")
+
 	logger.Info("[HTML Parser] Extraction complete: %d lines", strings.Count(text, "\n")+1)
 	return text
 }
