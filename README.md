@@ -48,25 +48,29 @@ make install
 
 The compiled binary will be at `./bin/cf`. You can move it to anywhere you like or add it to your PATH.
 
-### Browser Mode (Recommended)
+### Browser Mode (Required)
 
-cf-tool now supports **Browser Mode** for parsing and submitting, which bypasses Cloudflare protection and provides better stability.
+cf-tool now uses **Browser Mode** for parsing and submitting, which bypasses Cloudflare protection and provides better stability.
 
 **Required**: [mcp-chrome](https://github.com/hangwin/mcp-chrome/) - A Chrome extension that exposes Chrome DevTools Protocol via MCP.
 
 #### Installation Steps
 
-1. **Install mcp-chrome extension**
-   - Download from [Chrome Web Store](https://chromewebstore.google.com/detail/mcp-chrome/idjnlhbcijbgdhejbbggojflijaggpj)
-   - Or load the unpacked extension from [GitHub releases](https://github.com/hangwin/mcp-chrome/releases)
+1. **Download and install mcp-chrome extension**
+   - Download from [GitHub releases](https://github.com/hangwin/mcp-chrome/releases)
+   - Extract the downloaded file
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked" and select the extracted extension folder
+   - Click the extension icon to open the plugin, then click connect to see the MCP configuration
 
 2. **Install mcp-chrome-bridge**
    ```bash
-   # Using npm (recommended)
+   # Using npm
    npm install -g @hangwin/mcp-chrome-bridge
 
-   # Or using yarn
-   yarn global add @hangwin/mcp-chrome-bridge
+   # Or using pnpm
+   pnpm add -g @hangwin/mcp-chrome-bridge
    ```
 
 3. **Start mcp-chrome-bridge**

@@ -48,25 +48,29 @@ make install
 
 编译后的二进制文件位于 `./bin/cf`。你可以把它移动到任何位置，或者把它添加到系统 PATH 环境变量中。
 
-### 浏览器模式（推荐）
+### 浏览器模式（必需）
 
-cf-tool 现已支持**浏览器模式**用于解析和提交，可以绕过 Cloudflare 保护并提供更好的稳定性。
+cf-tool 现已使用**浏览器模式**进行解析和提交，可以绕过 Cloudflare 保护并提供更好的稳定性。
 
 **必需组件**：[mcp-chrome](https://github.com/hangwin/mcp-chrome/) - 一个通过 MCP 暴露 Chrome DevTools Protocol 的 Chrome 扩展。
 
 #### 安装步骤
 
-1. **安装 mcp-chrome 扩展**
-   - 从 [Chrome 网上应用店](https://chromewebstore.google.com/detail/mcp-chrome/idjnlhbcijbgdhejbbggojflijaggpj) 下载
-   - 或从 [GitHub releases](https://github.com/hangwin/mcp-chrome/releases) 加载未打包的扩展
+1. **下载并安装 mcp-chrome 扩展**
+   - 从 [GitHub releases](https://github.com/hangwin/mcp-chrome/releases) 下载扩展文件
+   - 解压下载的文件
+   - 打开 Chrome 浏览器，访问 `chrome://extensions/`
+   - 开启"开发者模式"
+   - 点击"加载已解压的扩展程序"，选择解压后的扩展文件夹
+   - 点击扩展图标打开插件，然后点击连接查看 MCP 配置
 
 2. **安装 mcp-chrome-bridge**
    ```bash
-   # 使用 npm（推荐）
+   # 使用 npm
    npm install -g @hangwin/mcp-chrome-bridge
 
-   # 或使用 yarn
-   yarn global add @hangwin/mcp-chrome-bridge
+   # 或使用 pnpm
+   pnpm add -g @hangwin/mcp-chrome-bridge
    ```
 
 3. **启动 mcp-chrome-bridge**
