@@ -143,6 +143,15 @@ func (c *Client) InitBrowserClient(command string, args []string) error {
 	return nil
 }
 
+// SetMCPClient sets a pre-initialized MCP client and enables browser mode
+func (c *Client) SetMCPClient(mcpClient *mcp.Client) {
+	c.mcpClient = mcpClient
+	c.browserEnabled = true
+
+	// Initialize browser fetcher
+	c.fetcher = NewBrowserFetcher(mcpClient)
+}
+
 // CloseBrowserClient closes the browser client
 func (c *Client) CloseBrowserClient() error {
 	if c.mcpClient != nil {
