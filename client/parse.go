@@ -18,24 +18,66 @@ import (
 )
 
 func findSample(body []byte) (input [][]byte, output [][]byte, err error) {
-	irg := regexp.MustCompile(`class="input"[\s\S]*?<pre>([\s\S]*?)</pre>`)
-	org := regexp.MustCompile(`class="output"[\s\S]*?<pre>([\s\S]*?)</pre>`)
-	a := irg.FindAllSubmatch(body, -1)
-	b := org.FindAllSubmatch(body, -1)
-	if a == nil || b == nil || len(a) != len(b) {
-		return nil, nil, fmt.Errorf("Cannot parse sample with input %v and output %v", len(a), len(b))
+	logger.Debug("Finding samples in HTML (size=%d bytes)", len(body))
+
+	// Find all <pre> tags that are inside input or output divs
+	// This approach works regardless of nesting level
+
+	// First, find all input blocks with their <pre> content
+	inputReg := regexp.MustCompile(`<div[^>]*class="input"[^>]*>[\s\S]*?<pre[^>]*>([\s\S]*?)</pre>`)
+	inputMatches := inputReg.FindAllSubmatch(body, -1)
+
+	// Find all output blocks with their <pre> content
+	outputReg := regexp.MustCompile(`<div[^>]*class="output"[^>]*>[\s\S]*?<pre[^>]*>([\s\S]*?)</pre>`)
+	outputMatches := outputReg.FindAllSubmatch(body, -1)
+
+	logger.Debug("Found %d input blocks and %d output blocks", len(inputMatches), len(outputMatches))
+
+	if len(inputMatches) == 0 || len(outputMatches) == 0 {
+		logger.Error("Cannot find any sample input/output blocks")
+		return nil, nil, fmt.Errorf("Cannot parse sample with input %v and output %v", len(inputMatches), len(outputMatches))
 	}
-	newline := regexp.MustCompile(`<[\s/br]+?>`)
-	filter := func(src []byte) []byte {
-		src = newline.ReplaceAll(src, []byte("\n"))
-		s := html.UnescapeString(string(src))
-		return []byte(strings.TrimSpace(s) + "\n")
+
+	// Ensure we have the same number of inputs and outputs
+	count := len(inputMatches)
+	if len(outputMatches) < count {
+		count = len(outputMatches)
 	}
-	for i := 0; i < len(a); i++ {
-		input = append(input, filter(a[i][1]))
-		output = append(output, filter(b[i][1]))
+
+	for i := 0; i < count; i++ {
+		// Process input: remove HTML tags, unescape, clean whitespace
+		inputContent := extractTextContent(inputMatches[i][1])
+		input = append(input, []byte(inputContent+"\n"))
+
+		// Process output: remove HTML tags, unescape, clean whitespace
+		outputContent := extractTextContent(outputMatches[i][1])
+		output = append(output, []byte(outputContent+"\n"))
+
+		logger.Debug("Extracted sample %d: input=%d bytes, output=%d bytes", i+1, len(inputContent), len(outputContent))
 	}
+
+	logger.Debug("Found %d sample pairs", len(input))
 	return
+}
+
+// extractTextContent extracts text content from HTML, removing all tags
+func extractTextContent(htmlBytes []byte) string {
+	// Remove all HTML tags
+	tagReg := regexp.MustCompile(`<[^>]+>`)
+	text := tagReg.ReplaceAllString(string(htmlBytes), "")
+
+	// Unescape HTML entities
+	text = html.UnescapeString(text)
+
+	// Clean up whitespace: replace <br>, &nbsp;, etc already handled
+	// Normalize whitespace
+	spaceReg := regexp.MustCompile(`\s+`)
+	text = spaceReg.ReplaceAllString(text, " ")
+
+	// Trim and convert HTML line breaks to newlines
+	text = strings.TrimSpace(text)
+
+	return text
 }
 
 // ParseProblem parse problem to path. mu can be nil
@@ -104,18 +146,27 @@ func (c *Client) ParseProblem(URL, path string, mu *sync.Mutex) (samples int, st
 func (c *Client) Parse(info Info) (problems []string, paths []string, err error) {
 	color.Cyan("Parse " + info.Hint())
 
+	logger.Debug("Parse info: ProblemID=%s, ProblemType=%s", info.ProblemID, info.ProblemType)
+
 	problemID := info.ProblemID
 	info.ProblemID = "%v"
 	urlFormatter, err := info.ProblemURL(c.host)
 	if err != nil {
+		logger.Error("Failed to build ProblemURL: %v", err)
 		return
 	}
 	info.ProblemID = ""
+
+	logger.Debug("URL formatter: %s", urlFormatter)
+
 	if problemID == "" {
+		logger.Info("No problemID specified, fetching problem list from contest page...")
 		statics, err := c.Statis(info)
 		if err != nil {
+			logger.Error("Failed to get problem statistics: %v", err)
 			return nil, nil, err
 		}
+		logger.Info("Found %d problems in contest", len(statics))
 		problems = make([]string, len(statics))
 		for i, problem := range statics {
 			problems[i] = problem.ID

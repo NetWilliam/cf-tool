@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 )
 
@@ -86,14 +87,36 @@ func (c *Client) GetWebContentHTML(ctx context.Context, url string) (string, err
 		return "", fmt.Errorf("no content returned")
 	}
 
-	// Extract HTML from content
+	// Extract HTML from content - the chrome_get_web_content tool returns JSON
 	if html, ok := result.Content[0].(map[string]interface{}); ok {
+		// Try "html" field first
 		if content, ok := html["html"].(string); ok {
 			return content, nil
 		}
+		// Try "htmlContent" field (chrome_get_web_content uses this name)
+		if content, ok := html["htmlContent"].(string); ok {
+			return content, nil
+		}
+		// Try "text" field - it might contain JSON that needs parsing
+		if textContent, ok := html["text"].(string); ok {
+			// Check if it's JSON-formatted
+			if len(textContent) > 0 && textContent[0] == '{' {
+				// Parse as JSON to extract htmlContent
+				var jsonData map[string]interface{}
+				if err := json.Unmarshal([]byte(textContent), &jsonData); err == nil {
+					if htmlContent, ok := jsonData["htmlContent"].(string); ok {
+						return htmlContent, nil
+					}
+				}
+			}
+			// Otherwise return as-is
+			return textContent, nil
+		}
+		// Log what we got for debugging
+		return "", fmt.Errorf("unexpected content format, got keys: %v", html)
 	}
 
-	return "", fmt.Errorf("unexpected content format")
+	return "", fmt.Errorf("unexpected content format: %T", result.Content[0])
 }
 
 // NetworkRequest sends a network request

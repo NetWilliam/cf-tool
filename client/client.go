@@ -40,6 +40,11 @@ var Instance *Client
 
 // Init initialize
 func Init(path, host, proxy string) {
+	// Check for CF_DEBUG environment variable
+	if os.Getenv("CF_DEBUG") != "" {
+		logger.SetLevel(logger.DebugLevel)
+	}
+
 	jar, _ := cookiejar.New(nil)
 	c := &Client{Jar: jar, LastSubmission: nil, path: path, host: host, proxy: proxy, client: nil, browserEnabled: false}
 	if err := c.load(); err != nil {

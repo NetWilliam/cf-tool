@@ -96,7 +96,8 @@ func (f *BrowserFetcher) Get(url string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout*1000000000) // convert to nanoseconds
 	defer cancel()
 
-	content, err := f.mcpClient.GetWebContent(ctx, url)
+	// Use GetWebContentHTML to get raw HTML instead of text content
+	content, err := f.mcpClient.GetWebContentHTML(ctx, url)
 	if err != nil {
 		logger.Error("BrowserFetcher GET failed: %s - %v", url, err)
 		return nil, fmt.Errorf("browser request failed: %w", err)
