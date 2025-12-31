@@ -56,13 +56,9 @@ cf-tool 现已使用**浏览器模式**进行解析和提交，可以绕过 Clou
 
 #### 安装步骤
 
-1. **下载并安装 mcp-chrome 扩展**
+1. **下载 mcp-chrome 扩展**
    - 从 [GitHub releases](https://github.com/hangwin/mcp-chrome/releases) 下载扩展文件
-   - 解压下载的文件
-   - 打开 Chrome 浏览器，访问 `chrome://extensions/`
-   - 开启"开发者模式"
-   - 点击"加载已解压的扩展程序"，选择解压后的扩展文件夹
-   - 点击扩展图标打开插件，然后点击连接查看 MCP 配置
+   - 解压下载的文件到文件夹
 
 2. **安装 mcp-chrome-bridge**
    ```bash
@@ -73,13 +69,19 @@ cf-tool 现已使用**浏览器模式**进行解析和提交，可以绕过 Clou
    pnpm add -g @hangwin/mcp-chrome-bridge
    ```
 
-3. **启动 mcp-chrome-bridge**
+3. **加载 Chrome 扩展**
+   - 打开 Chrome 浏览器，访问 `chrome://extensions/`
+   - 开启"开发者模式"
+   - 点击"加载已解压的扩展程序"，选择下载的扩展文件夹
+   - 点击扩展图标打开插件，然后点击连接查看 MCP 配置
+
+4. **启动 mcp-chrome-bridge**
    ```bash
    mcp-chrome-bridge
    ```
    默认运行在 `http://127.0.0.1:12306/mcp`。
 
-4. **验证安装**
+5. **验证安装**
    ```bash
    # 测试 MCP 连接
    cf mcp-ping

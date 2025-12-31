@@ -56,13 +56,9 @@ cf-tool now uses **Browser Mode** for parsing and submitting, which bypasses Clo
 
 #### Installation Steps
 
-1. **Download and install mcp-chrome extension**
+1. **Download mcp-chrome extension**
    - Download from [GitHub releases](https://github.com/hangwin/mcp-chrome/releases)
-   - Extract the downloaded file
-   - Open Chrome and go to `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked" and select the extracted extension folder
-   - Click the extension icon to open the plugin, then click connect to see the MCP configuration
+   - Extract the downloaded file to a folder
 
 2. **Install mcp-chrome-bridge**
    ```bash
@@ -73,13 +69,19 @@ cf-tool now uses **Browser Mode** for parsing and submitting, which bypasses Clo
    pnpm add -g @hangwin/mcp-chrome-bridge
    ```
 
-3. **Start mcp-chrome-bridge**
+3. **Load Chrome Extension**
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked" and select your downloaded extension folder
+   - Click the extension icon to open the plugin, then click connect to see the MCP configuration
+
+4. **Start mcp-chrome-bridge**
    ```bash
    mcp-chrome-bridge
    ```
    By default, it runs on `http://127.0.0.1:12306/mcp`.
 
-4. **Verify installation**
+5. **Verify installation**
    ```bash
    # Test MCP connection
    cf mcp-ping
