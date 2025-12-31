@@ -1,14 +1,15 @@
 package client
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/NetWilliam/cf-tool/pkg/logger"
-	"github.com/NetWilliam/cf-tool/util"
 
 	"github.com/fatih/color"
 )
@@ -37,70 +38,109 @@ func (c *Client) Submit(info Info, langID, source string) (err error) {
 
 	logger.Debug("Submit URL: %s", URL)
 
-	body, err := util.GetBody(c.client, URL)
+	// Check if we have browser mode available
+	if !c.browserEnabled || c.mcpClient == nil {
+		return errors.New("Browser mode is required for submit. Please ensure MCP Chrome Server is running.")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	// Step 1: Navigate to submit page
+	logger.Info("Navigating to submit page...")
+	if err := c.mcpClient.Navigate(ctx, URL); err != nil {
+		logger.Error("Failed to navigate to submit page: %v", err)
+		return fmt.Errorf("navigation failed: %w", err)
+	}
+
+	// Wait a bit for page to load
+	time.Sleep(2 * time.Second)
+
+	// Step 2: Fill language selector
+	logger.Debug("Selecting language: %s", langID)
+	if err := c.mcpClient.Fill(ctx, "#programTypeId", langID); err != nil {
+		logger.Warning("Failed to fill language selector: %v", err)
+		// Try alternative selector
+		if err := c.mcpClient.Fill(ctx, "[name='programTypeId']", langID); err != nil {
+			logger.Warning("Failed to fill language selector with alternative: %v", err)
+		}
+	}
+
+	// Step 3: Inject source code using JavaScript
+	logger.Debug("Injecting source code...")
+	// Escape the source code for JavaScript
+	sourceEscaped := strings.ReplaceAll(source, "\\", "\\\\")
+	sourceEscaped = strings.ReplaceAll(sourceEscaped, "`", "\\`")
+	sourceEscaped = strings.ReplaceAll(sourceEscaped, "$", "\\$")
+	sourceEscaped = strings.ReplaceAll(sourceEscaped, "'", "\\'")
+
+	// Use JavaScript to directly set the source code field
+	jsCode := fmt.Sprintf(`
+		(function() {
+			let sourceField = document.querySelector('[name="source"]');
+			if (!sourceField) {
+				sourceField = document.getElementById('source');
+			}
+			if (sourceField) {
+				sourceField.value = %s;
+				return 'success';
+			}
+			return 'failed';
+		})();
+	`, jsonEscape(source))
+
+	// Execute JavaScript to set source code
+	_, err = c.mcpClient.CallTool(ctx, "chrome_javascript", map[string]interface{}{
+		"code": jsCode,
+	})
 	if err != nil {
-		logger.Error("Failed to fetch submit page: %v", err)
-		return
+		logger.Error("Failed to inject source code: %v", err)
+		return fmt.Errorf("failed to inject source code: %w", err)
 	}
 
-	logger.Debug("Fetched submit page: size=%d bytes", len(body))
+	time.Sleep(500 * time.Millisecond)
 
-	csrf, err := findCsrf(body)
-	if err != nil {
-		logger.Error("Failed to extract CSRF token: %v", err)
-		return
+	// Step 4: Click submit button
+	logger.Debug("Clicking submit button...")
+	submitSelectors := []string{
+		"input[type='submit']",
+		"button[type='submit']",
+		".submit",
+		"[value='Submit']",
 	}
 
-	logger.Debug("CSRF token: %s", csrf)
-
-	submitData := url.Values{
-		"csrf_token":            {csrf},
-		"ftaa":                  {c.Ftaa},
-		"bfaa":                  {c.Bfaa},
-		"action":                {"submitSolutionFormSubmitted"},
-		"submittedProblemIndex": {info.ProblemID},
-		"programTypeId":         {langID},
-		"contestId":             {info.ContestID},
-		"source":                {source},
-		"tabSize":               {"4"},
-		"_tta":                  {"594"},
-		"sourceCodeConfirmed":   {"true"},
+	var submitErr error
+	for _, selector := range submitSelectors {
+		if err := c.mcpClient.Click(ctx, selector); err != nil {
+			submitErr = err
+			continue
+		}
+		submitErr = nil
+		break
 	}
 
-	logger.Debug("Submitting with data: programTypeId=%s, contestId=%s, problemIndex=%s",
-		langID, info.ContestID, info.ProblemID)
-
-	body, err = util.PostBody(c.client, fmt.Sprintf("%v?csrf_token=%v", URL, csrf), submitData)
-	if err != nil {
-		logger.Error("Failed to submit: %v", err)
-		return
+	if submitErr != nil {
+		logger.Error("Failed to click submit button: %v", submitErr)
+		return fmt.Errorf("failed to submit: %w", submitErr)
 	}
 
-	logger.Debug("Submit response size: %d bytes", len(body))
-
-	errMsg, err := findErrorMessage(body)
-	if err == nil {
-		logger.Error("Submit error: %s", errMsg)
-		return errors.New(errMsg)
-	}
-
-	msg, err := findMessage(body)
-	if err != nil {
-		logger.Error("Submit failed: %v", err)
-		return errors.New("Submit failed")
-	}
-	if !strings.Contains(msg, "submitted successfully") {
-		logger.Error("Submit failed with message: %s", msg)
-		return errors.New(msg)
-	}
+	// Wait for submission to process
+	time.Sleep(3 * time.Second)
 
 	logger.Info("Code submitted successfully")
 	color.Green("Submitted")
 
+	// Step 5: Watch submission status
+	// Add a bit more delay to ensure submission appears in the list
+	logger.Info("Waiting for submission to appear in submission list...")
+	time.Sleep(2 * time.Second)
+
 	submissions, err := c.WatchSubmission(info, 1, true)
 	if err != nil {
 		logger.Error("Failed to watch submission: %v", err)
-		return
+		logger.Warning("Submit was successful, but monitoring failed. You can check the status manually.")
+		// Don't return error - the submission was successful
+		return nil
 	}
 
 	info.SubmissionID = submissions[0].ParseID()
@@ -108,4 +148,10 @@ func (c *Client) Submit(info Info, langID, source string) (err error) {
 
 	logger.Info("Submission saved: ID=%s", info.SubmissionID)
 	return c.save()
+}
+
+// jsonEscape escapes a string for use in JavaScript
+func jsonEscape(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
 }

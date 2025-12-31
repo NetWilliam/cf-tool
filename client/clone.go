@@ -9,7 +9,6 @@ import (
 
 	"github.com/NetWilliam/cf-tool/pkg/logger"
 	"github.com/fatih/color"
-	"github.com/NetWilliam/cf-tool/util"
 )
 
 type cloneData struct {
@@ -22,7 +21,7 @@ type cloneData struct {
 func (c *Client) Clone(handle, rootPath string, ac bool) (err error) {
 	color.Cyan("Clone all codes of %v. Only Accepted: %v", handle, ac)
 
-	data, err := util.GetJSONBody(c.client, fmt.Sprintf(c.host+"/api/user.status?handle=%v", handle))
+	data, err := c.fetcher.GetJSON(fmt.Sprintf(c.host+"/api/user.status?handle=%v", handle))
 	if err != nil {
 		return
 	}
