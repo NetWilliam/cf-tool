@@ -37,10 +37,5 @@ func Parse() (err error) {
 		}
 		return nil
 	}
-	if err = work(); err != nil {
-		if err = loginAgain(cln, err); err == nil {
-			err = work()
-		}
-	}
-	return
+	return executeWithLoginRetry(cln, work)
 }

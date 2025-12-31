@@ -159,6 +159,17 @@ func getOneCode(filename string, templates []config.CodeTemplate) (name string, 
 	return codes[0].Name, codes[0].Index[0], nil
 }
 
+// executeWithLoginRetry executes a work function and retries with login if ErrorNotLogged occurs
+func executeWithLoginRetry(cln *client.Client, work func() error) error {
+	err := work()
+	if err != nil {
+		if err = loginAgain(cln, err); err == nil {
+			return work()
+		}
+	}
+	return err
+}
+
 func loginAgain(cln *client.Client, err error) error {
 	if err != nil && err.Error() == client.ErrorNotLogged {
 		color.Red("Not logged. Try to login\n")

@@ -41,6 +41,13 @@ func (c *Client) Navigate(ctx context.Context, url string) error {
 	return err
 }
 
+// NavigateWithResult navigates to a URL and returns the result
+func (c *Client) NavigateWithResult(ctx context.Context, url string) (*ToolResult, error) {
+	return c.CallTool(ctx, ChromeTools.Navigate, map[string]interface{}{
+		"url": url,
+	})
+}
+
 // GetWebContent gets the text content of a page
 func (c *Client) GetWebContent(ctx context.Context, url string) (string, error) {
 	result, err := c.CallTool(ctx, ChromeTools.GetWebContent, map[string]interface{}{
@@ -58,6 +65,30 @@ func (c *Client) GetWebContent(ctx context.Context, url string) (string, error) 
 	// Extract text from content
 	if text, ok := result.Content[0].(map[string]interface{}); ok {
 		if content, ok := text["text"].(string); ok {
+			return content, nil
+		}
+	}
+
+	return "", fmt.Errorf("unexpected content format")
+}
+
+// GetWebContentHTML gets the HTML content of a page
+func (c *Client) GetWebContentHTML(ctx context.Context, url string) (string, error) {
+	result, err := c.CallTool(ctx, ChromeTools.GetWebContent, map[string]interface{}{
+		"url":         url,
+		"htmlContent": true,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Content) == 0 {
+		return "", fmt.Errorf("no content returned")
+	}
+
+	// Extract HTML from content
+	if html, ok := result.Content[0].(map[string]interface{}); ok {
+		if content, ok := html["html"].(string); ok {
 			return content, nil
 		}
 	}

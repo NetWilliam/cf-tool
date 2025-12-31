@@ -16,15 +16,17 @@ import (
 func List() (err error) {
 	cln := client.Instance
 	info := Args.Info
-	problems, err := cln.Statis(info)
-	if err != nil {
-		if err = loginAgain(cln, err); err == nil {
-			problems, err = cln.Statis(info)
-		}
-	}
+
+	var problems []client.StatisInfo
+	err = executeWithLoginRetry(cln, func() error {
+		var e error
+		problems, e = cln.Statis(info)
+		return e
+	})
 	if err != nil {
 		return
 	}
+
 	var buf bytes.Buffer
 	output := io.Writer(&buf)
 	table := tablewriter.NewWriter(output)
