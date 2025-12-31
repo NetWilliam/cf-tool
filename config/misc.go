@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/fatih/color"
 	"github.com/NetWilliam/cf-tool/util"
+	"github.com/fatih/color"
 )
 
 // SetGenAfterParse set it yes or no

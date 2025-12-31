@@ -766,6 +766,254 @@ cf pull 1234
 
 ---
 
+## 📊 今日完整工作总结 (2025-12-31)
+
+### 会话目标 ✅
+完成 cf-tool 浏览器模式的最小可行产品（MVP），实现 `parse` 和 `submit` 两个核心命令的完整功能。
+
+### 完成的工作流程
+
+#### 1. 问题发现与分析 (19:00-20:20)
+- ✅ 发现 HTML 解析问题：多行输入被合并成一行
+- ✅ 调查发现 Codeforces 使用两种 HTML 格式：
+  - 旧格式（Contest 1000）: `<br />` 标签
+  - 新格式（Contest 2122）: `<div class="test-example-line">` 标签
+- ✅ 创建 Hotfix.md 记录问题和解决方案
+
+#### 2. 第一轮修复 (20:15-20:20)
+- ✅ 修复 `<br>` 标签处理（旧格式）
+- ✅ 测试 1000a 成功
+- ✅ 发现新格式问题：2122d 仍然失败
+
+#### 3. 第二轮修复 (20:20-20:30)
+- ✅ 添加 `<div>` 标签处理（新格式）
+- ✅ 添加详细的 INFO 级别日志
+- ✅ 测试两种格式都成功
+- ✅ 移除 parse.go 调试代码
+
+#### 4. 第三轮修复 (20:30-20:35)
+- ✅ 去除多余换行符（`</div>` 替换导致的末尾空行）
+- ✅ 确保文件结尾只有一个 `\n`
+
+#### 5. 提交功能完善 (19:46-20:10)
+- ✅ 添加 problemID 大写转换（a → A）
+- ✅ 选择正确的提交按钮（`#singlePageSubmitButton`）
+- ✅ 测试提交流程完整成功
+
+#### 6. 文档更新 (20:35-21:00)
+- ✅ 更新 Hotfix.md 完整记录修复过程
+- ✅ 更新 README.md 添加浏览器模式安装指南
+- ✅ 更新 README_zh_CN.md 同步中文翻译
+- ✅ 更新 TODO.md 记录所有进度
+
+#### 7. 年度公告准备 (21:00-21:30)
+- ✅ 创建新年公告（happynewyear.md）
+- ✅ 创建无表情符号版本（happynewyear-noemoji.md）
+- ✅ 准备发布到社区
+
+### 关键提交记录
+
+```bash
+c25d63d - HOTFIX - Handle <div> tags in HTML parser for new format
+0d4dc45 - HOTFIX - Remove trailing newline to avoid double newlines
+8667beb - HOTFIX - Add uppercase conversion for problemID
+503b6a2 - HOTFIX - Handle <br> tags in HTML parser
+2929692 - docs: Add mcp-chrome installation guide to README
+```
+
+### 技术实现细节
+
+#### HTML 解析核心算法 (`client/html/parser.go`)
+```go
+func extractTextContent(htmlBytes []byte) string {
+    text := string(htmlBytes)
+
+    // STEP 1: Handle <div> tags (NEW format)
+    divReg := regexp.MustCompile(`</div>`)
+    text = divReg.ReplaceAllString(text, "\n")
+
+    // STEP 2: Handle <br> tags (OLD format)
+    brReg := regexp.MustCompile(`<br\s*/?>`)
+    text = brReg.ReplaceAllString(text, "\n")
+
+    // STEP 3-7: Clean up, normalize, trim
+    // ...
+
+    // STEP 8: Remove trailing newlines
+    text = strings.TrimRight(text, "\n\r")
+
+    return text
+}
+```
+
+**关键设计决策**:
+- 按顺序处理：先 `</div>` 后 `<br>`（避免冲突）
+- 保留所有换行符：使用 `[ \t]+` 而不是 `\s+`
+- 逐行 trim：保留多行结构
+- 末尾清理：避免双重换行
+
+#### 提交流程 (`client/browser/submit.go`)
+```go
+// Step 1: Navigate to submit page
+mcpClient.Navigate(ctx, URL)
+
+// Step 2: Select problem (uppercase conversion)
+problemIDUpper := strings.ToUpper(problemID)
+mcpClient.Fill(ctx, "[name='submittedProblemIndex']", problemIDUpper)
+
+// Step 3: Select language
+mcpClient.Fill(ctx, "#programTypeId", langID)
+
+// Step 4: Inject source code via JavaScript
+mcpClient.CallTool(ctx, "chrome_javascript", {...})
+
+// Step 5: Click submit button
+mcpClient.Click(ctx, "#singlePageSubmitButton")
+```
+
+**关键设计决策**:
+- 大写转换：Codeforces 表单要求大写字母
+- 使用正确的按钮 ID：`#singlePageSubmitButton`
+- JavaScript 注入代码：避免字符转义问题
+
+### 测试验证
+
+#### 旧格式测试 (Contest 1000, Problem A)
+```bash
+$ cf parse 1000 a
+✅ Extracted 3 samples
+✅ in1.txt: 8 lines, all with proper newlines
+```
+
+#### 新格式测试 (Contest 2122, Problem D)
+```bash
+$ cf parse 2122 d
+✅ Extracted 1 sample
+✅ in1.txt: 13 lines, all properly separated (was 1 line before)
+```
+
+#### 提交测试
+```bash
+$ cf submit 101 a
+✅ Selecting problem: a (converted to: A)
+✅ Code submitted successfully via browser
+✅ Submission ID=355976655, problem=A - Homework
+```
+
+### 已知问题和限制
+
+#### 当前限制
+1. **配置文件**: 仍使用旧的配置格式（未迁移到浏览器模式）
+2. **安装脚本**: 需要用户手动安装 mcp-chrome-bridge
+3. **错误处理**: 浏览器通信失败时的错误提示不够友好
+4. **依赖项**: 必须运行 mcp-chrome-bridge 后才能使用 cf-tool
+
+#### 不影响核心功能的问题
+- WatchSubmission 监控有时需要多次重试才能找到最新提交（非阻塞）
+- 某些边缘情况的 HTML 结构可能需要进一步调整
+
+### 待办事项（优先级排序）
+
+#### 高优先级（必须完成）
+1. **配置文件迁移**
+   - 移除 login 相关配置项
+   - 添加 MCP 服务器地址配置（默认：`http://127.0.0.1:12306/mcp`）
+   - 更新 `cf config` 命令
+
+2. **错误处理改进**
+   - MCP 服务器未启动时的友好提示
+   - 浏览器未打开时的自动提示
+   - 网络错误重试机制
+
+#### 中优先级（改进体验）
+3. **安装脚本**
+   - 自动检测并安装 mcp-chrome-bridge
+   - 验证安装并提示用户
+   - 一键安装脚本
+
+4. **测试增强**
+   - 单元测试（MCP 客户端）
+   - 集成测试（完整工作流）
+   - 跨平台测试（Windows/Linux/macOS）
+
+#### 低优先级（未来功能）
+5. **功能增强**
+   - 并发解析多个题目
+   - 缓存机制
+   - 配额管理
+
+6. **文档完善**
+   - 视频教程
+   - 故障排查指南
+   - API 文档
+
+### 文件清单
+
+#### 新增文件
+- `Hotfix.md` - 完整的 Bug 修复记录
+- `Future.md` - 未来架构设计文档
+- `happynewyear.md` - 新年公告（含 emoji）
+- `happynewyear-noemoji.md` - 新年公告（无 emoji）
+
+#### 修改的核心文件
+- `client/html/parser.go` - HTML 解析（支持新旧格式）
+- `client/browser/submit.go` - 浏览器模式提交
+- `client/parse.go` - 解析命令入口
+- `client/submit.go` - 提交命令入口
+- `pkg/logger/` - 分级日志系统
+- `pkg/mcp/` - MCP 客户端库
+- `README.md` - 英文文档（添加浏览器模式）
+- `README_zh_CN.md` - 中文文档（同步更新）
+- `TODO.md` - 项目进度追踪
+
+### 会话重启指南
+
+#### 快速恢复上下文
+当重启 Claude Code 会话时，需要了解的关键信息：
+
+1. **项目状态**: 浏览器模式 MVP 完成，parse 和 submit 可用
+2. **核心功能**: 已实现并测试通过
+3. **当前分支**: `chrome-mcp`（功能分支）
+4. **主分支**: `master`（稳定版本）
+5. **下一步**: 配置文件迁移和错误处理改进
+
+#### 快速测试命令
+```bash
+# 验证 MCP 连接
+cf mcp-ping
+
+# 测试浏览器自动化
+cf mocka
+
+# 测试解析（旧格式）
+cf parse 1000 a
+
+# 测试解析（新格式）
+cf parse 2122 d
+
+# 测试提交
+cd cf/contest/101/a && cf submit
+```
+
+#### 重要参考文档
+- `Hotfix.md` - Bug 修复历史（如遇问题先查阅）
+- `Future.md` - 架构设计未来方向
+- `TODO.md` - 本文件，完整进度追踪
+
+### 技术债务
+1. **代码清理**: 移除所有 `// TODO` 和 `// FIXME` 注释
+2. **测试覆盖**: 当前没有单元测试，需要补充
+3. **文档完善**: 部分命令缺少详细文档
+4. **性能优化**: 可以考虑并发处理多个题目
+
+### 社区准备
+- ✅ 年新公告已准备（两个版本）
+- ✅ README 已更新（安装指南完整）
+- ✅ 核心功能已验证（parse + submit 正常工作）
+- ⏳ 待发布：准备发布到社区
+
+---
+
 ## 🔗 参考资源
 
 - [MCP-Chrome GitHub](https://github.com/hangwin/mcp-chrome)

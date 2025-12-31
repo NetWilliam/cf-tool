@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/fatih/color"
-	ansi "github.com/k0kubun/go-ansi"
 	"github.com/NetWilliam/cf-tool/config"
 	"github.com/NetWilliam/cf-tool/util"
+	"github.com/fatih/color"
+	ansi "github.com/k0kubun/go-ansi"
 )
 
 // Config command

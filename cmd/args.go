@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/docopt/docopt-go"
 	"github.com/NetWilliam/cf-tool/client"
 	"github.com/NetWilliam/cf-tool/config"
+	"github.com/docopt/docopt-go"
 )
 
 // ParsedArgs parsed arguments

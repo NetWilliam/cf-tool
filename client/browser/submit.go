@@ -81,7 +81,7 @@ func SubmitCode(ctx context.Context, mcpClient *mcp.Client, URL, langID, source,
 	// Step 5: Click submit button (use correct ID for Codeforces)
 	logger.Debug("Clicking submit button...")
 	submitSelectors := []string{
-		"#singlePageSubmitButton",  // ✅ Codeforces specific button ID
+		"#singlePageSubmitButton", // ✅ Codeforces specific button ID
 		"input[type='submit']",
 		"button[type='submit']",
 		".submit",

@@ -23,12 +23,12 @@ type Transport interface {
 
 // SSETransport implements Server-Sent Events transport for MCP
 type SSETransport struct {
-	client      *http.Client
-	serverURL   string
-	eventChan   chan *JSONRPCMessage
-	mu          sync.Mutex
-	connected   bool
-	stopChan    chan struct{}
+	client    *http.Client
+	serverURL string
+	eventChan chan *JSONRPCMessage
+	mu        sync.Mutex
+	connected bool
+	stopChan  chan struct{}
 }
 
 // NewSSETransport creates a new SSE transport

@@ -11,8 +11,8 @@ import (
 
 	"github.com/NetWilliam/cf-tool/client"
 	"github.com/NetWilliam/cf-tool/config"
-	"github.com/fatih/color"
 	"github.com/NetWilliam/cf-tool/util"
+	"github.com/fatih/color"
 )
 
 // Eval opts

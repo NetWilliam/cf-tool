@@ -8,28 +8,28 @@ import (
 
 // ToolNames defines constants for MCP Chrome tools
 type ToolNames struct {
-	GetWindowsAndTabs     string
-	Navigate              string
-	GetWebContent         string
-	NetworkRequest        string
-	NetworkCaptureStart   string
-	NetworkCaptureStop    string
-	FillOrSelect          string
-	ClickElement          string
-	Keyboard              string
+	GetWindowsAndTabs   string
+	Navigate            string
+	GetWebContent       string
+	NetworkRequest      string
+	NetworkCaptureStart string
+	NetworkCaptureStop  string
+	FillOrSelect        string
+	ClickElement        string
+	Keyboard            string
 }
 
 // ChromeTools contains Chrome MCP tool names
 var ChromeTools = ToolNames{
-	GetWindowsAndTabs:  "get_windows_and_tabs",
-	Navigate:           "chrome_navigate",
-	GetWebContent:      "chrome_get_web_content",
-	NetworkRequest:     "chrome_network_request",
+	GetWindowsAndTabs:   "get_windows_and_tabs",
+	Navigate:            "chrome_navigate",
+	GetWebContent:       "chrome_get_web_content",
+	NetworkRequest:      "chrome_network_request",
 	NetworkCaptureStart: "chrome_network_capture_start",
-	NetworkCaptureStop: "chrome_network_capture_stop",
-	FillOrSelect:       "chrome_fill_or_select",
-	ClickElement:       "chrome_click_element",
-	Keyboard:           "chrome_keyboard",
+	NetworkCaptureStop:  "chrome_network_capture_stop",
+	FillOrSelect:        "chrome_fill_or_select",
+	ClickElement:        "chrome_click_element",
+	Keyboard:            "chrome_keyboard",
 }
 
 // Helper functions for common tool calls

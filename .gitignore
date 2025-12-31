@@ -18,6 +18,7 @@ cf
 # IDE
 .vscode
 .idea
+.claude
 
 # Build directories
 /bin/

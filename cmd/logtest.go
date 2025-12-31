@@ -44,13 +44,13 @@ func LogTest() error {
 	fmt.Println("\n--- Testing JSON logging ---")
 
 	testData := map[string]interface{}{
-		"contestId":   "1234",
-		"problemId":   "A",
+		"contestId":    "1234",
+		"problemId":    "A",
 		"submissionId": 5678,
-		"verdict":     "Accepted",
-		"passedTests": 10,
-		"timeLimit":   "2000 ms",
-		"memoryLimit": "256 MB",
+		"verdict":      "Accepted",
+		"passedTests":  10,
+		"timeLimit":    "2000 ms",
+		"memoryLimit":  "256 MB",
 	}
 
 	logger.DebugJSON("Submission Data", testData)
