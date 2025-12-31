@@ -2,7 +2,18 @@
 
 > **创建日期**: 2025-12-31
 > **版本**: v1.0-browser
-> **状态**: 进行中
+> **状态**: 🚧 进行中 - Bug #1 发现新问题需要修复
+
+---
+
+## 🚨 重要更新 (2025-12-31 20:20)
+
+Bug #1 的修复**不完整**！发现 Codeforces 有**两种不同的 HTML 格式**：
+
+1. **旧格式** (Contest 1000): 使用 `<br />` 标签换行 ✅ 已修复
+2. **新格式** (Contest 2122): 使用 `<div>` 标签分隔每行 ❌ **未处理**
+
+当前代码只处理了旧格式，新格式的多行输入仍会被合并成一行。
 
 ---
 
@@ -21,23 +32,56 @@ cat cf/contest/100/a/in1.txt
 
 ### 根本原因
 
-**文件**: `client/html/parser.go:40-66`
+**文件**: `client/html/parser.go:40-73`
 
-**问题 1**: `<br>` 标签被直接删除（主要问题）
+#### Codeforces 的两种 HTML 格式
 
-Codeforces 的 HTML 使用 `<br />` 标签来表示换行：
+**格式 1: 旧格式** (Contest 1000 及更早的比赛)
 ```html
 <pre>3<br />XS<br />XS<br />M<br />XL<br />S<br />XS<br /></pre>
 ```
+- 使用 `<br />` 或 `<br>` 标签表示换行
+- ✅ 已在第一次修复中解决
 
-原代码直接删除所有 HTML 标签（包括 `<br />`），导致换行符丢失：
-```go
-// Remove all HTML tags
-tagReg := regexp.MustCompile(`<[^>]+>`)
-text = tagReg.ReplaceAllString(string(htmlBytes), "")  // ❌ 删除了 <br /> 标签
+**格式 2: 新格式** (Contest 2122 及最近的比赛)
+```html
+<pre>
+  <div class="test-example-line test-example-line-even test-example-line-0">2</div>
+  <div class="test-example-line test-example-line-odd test-example-line-1">6 6</div>
+  <div class="test-example-line test-example-line-odd test-example-line-1">1 2</div>
+  <div class="test-example-line test-example-line-odd test-example-line-1">2 3</div>
+  <div class="test-example-line test-example-line-odd test-example-line-1">3 4</div>
+  ...
+</pre>
+```
+- 每行用 `<div class="test-example-line">...</div>` 包裹
+- ❌ **当前代码未处理**：直接删除所有 `<div>` 标签，导致所有行合并
+
+#### 当前代码的问题
+
+当前代码处理流程（针对新格式）：
+```
+HTML: <div>2</div><div>6 6</div><div>1 2</div>...
+  ↓ 删除所有标签
+Result: "26 61 22..."  # ❌ 所有行被合并成一行
 ```
 
-**问题 2**: `\s+` 匹配并替换换行符（次要问题，已在第一版修复）
+**问题 1**: `<div>` 标签被直接删除（新格式的主要问题）
+
+当前代码：
+```go
+// Remove all remaining HTML tags
+tagReg := regexp.MustCompile(`<[^>]+>`)
+text = tagReg.ReplaceAllString(text, "")  // ❌ 删除了 <div>...</div> 标签
+```
+
+**问题 2**: `<br>` 标签的处理（旧格式，已在第一次修复中部分解决）
+
+第一次修复添加了：
+```go
+brReg := regexp.MustCompile(`<br\s*/?>`)
+text = brReg.ReplaceAllString(text, "\n")  # ✅ 处理旧格式
+```
 
 原代码使用 `\s+` 将所有空白符（包括 `\n`）替换成空格：
 ```go
@@ -45,86 +89,158 @@ spaceReg := regexp.MustCompile(`\s+`)
 text = spaceReg.ReplaceAllString(text, " ")  // ❌ 把 \n 也替换成空格
 ```
 
-**示例**:
+**问题 3**: `\s+` 匹配并替换换行符（原始问题，已在第一次修复中解决）
 
-HTML 输入：
-```html
-<pre>3<br />XS<br />XS<br />M<br /></pre>
-```
-
-**原代码处理（错误）**:
-```
-1. 删除所有标签: "3XSXSM"
-2. HTML unescape: "3XSXSM"
-3. \s+ 替换空白符: "3XSXSM"
-Result: "3XSXSM"  # ❌ 所有内容在一行
+原代码使用 `\s+` 将所有空白符（包括 `\n`）替换成空格：
+```go
+spaceReg := regexp.MustCompile(`\s+`)
+text = spaceReg.ReplaceAllString(text, " ")  // ❌ 把 \n 也替换成空格
 ```
 
-**修复后处理（正确）**:
+第一次修复已改为 `[ \t]+` 只替换空格和制表符。
+
+#### 实际测试结果
+
+**旧格式测试** (Contest 1000, Problem A):
+```bash
+# HTML
+<pre>3<br />XS<br />XS<br />M<br />XL<br />S<br />XS<br /></pre>
+
+# 当前代码输出 ✅ 正确
+in1.txt:
+3
+XS
+XS
+M
+XL
+S
+XS
 ```
-1. 替换 <br> 为 \n: "3\nXS\nXS\nM\n"
-2. 删除其他标签: "3\nXS\nXS\nM\n"
-3. HTML unescape: "3\nXS\nXS\nM\n"
-4. [ \t]+ 只替换空格/制表符: "3\nXS\nXS\nM\n"
-5. Trim 每行: "3\nXS\nXS\nM\n"
-Result: "3\nXS\nXS\nM\n"  # ✅ 换行符正确保留
+
+**新格式测试** (Contest 2122, Problem D):
+```bash
+# HTML
+<pre>
+  <div class="test-example-line ...">2</div>
+  <div class="test-example-line ...">6 6</div>
+  <div class="test-example-line ...">1 2</div>
+  ...
+</pre>
+
+# 当前代码输出 ❌ 错误
+in1.txt: "26 61 22 33 44 61 55 64 31 21 31 4"
+
+# 预期输出 ✅
+in1.txt:
+2
+6 6
+1 2
+2 3
+3 4
+4 6
+1 5
+5 6
+4 3
+1 2
+1 3
+1 4
 ```
 
 ### 修复方案
 
-**关键修复**: 在删除其他 HTML 标签之前，先将 `<br>` 标签替换为换行符 `\n`
+**关键修复**: 必须同时处理两种 HTML 格式
+
+#### 方案: 按顺序处理不同换行标记
 
 ```go
 func extractTextContent(htmlBytes []byte) string {
     text := string(htmlBytes)
 
-    // CRITICAL: Replace <br> tags with newlines BEFORE removing other tags
-    // This handles both <br>, <br/>, and <br /> variants
+    // STEP 1: Handle <div> tags (new format)
+    // Replace closing </div> tags with newlines to preserve line breaks
+    // Each <div>...</div> represents one line in the new format
+    divReg := regexp.MustCompile(`</div>`)
+    text = divReg.ReplaceAllString(text, "\n")
+
+    // STEP 2: Handle <br> tags (old format)
+    // Replace <br>, <br/>, and <br /> with newlines
     brReg := regexp.MustCompile(`<br\s*/?>`)
     text = brReg.ReplaceAllString(text, "\n")
 
-    // Remove all remaining HTML tags
+    // STEP 3: Remove all remaining HTML tags
+    // At this point, all structural tags are gone or replaced with newlines
     tagReg := regexp.MustCompile(`<[^>]+>`)
     text = tagReg.ReplaceAllString(text, "")
 
-    // Unescape HTML entities
+    // STEP 4: Unescape HTML entities
     text = html.UnescapeString(text)
 
-    // ONLY replace spaces and tabs, NOT newlines or carriage returns
+    // STEP 5: Normalize horizontal whitespace (spaces and tabs only)
+    // Do NOT touch newlines or carriage returns
     spaceReg := regexp.MustCompile(`[ \t]+`)
     text = spaceReg.ReplaceAllString(text, " ")
 
-    // Trim each line and preserve line breaks
+    // STEP 6: Trim each line and preserve line breaks
     lines := strings.Split(text, "\n")
     for i, line := range lines {
         lines[i] = strings.TrimSpace(line)
     }
     text = strings.Join(lines, "\n")
 
-    // Trim leading/trailing whitespace (spaces/tabs) but keep structure
+    // STEP 7: Trim leading/trailing whitespace but keep structure
     text = strings.Trim(text, " \t\r")
 
     return text
 }
 ```
 
-#### 方案 2: 使用 HTML 规范化（更健壮）
+#### 处理流程对比
 
-```go
-func extractTextContent(htmlBytes []byte) string {
-    // Use goquery for better HTML parsing
-    // ...
-}
+**旧格式处理**:
+```
+HTML: <pre>3<br />XS<br />XS<br />M<br /></pre>
+  ↓ Step 2: <br> → \n
+"3\nXS\nXS\nM\n"
+  ↓ Step 3: 删除其他标签
+"3\nXS\nXS\nM\n"
+  ↓ Step 4-7: 清理和trim
+"3\nXS\nXS\nM\n"  ✅ 正确
 ```
 
-**选择**: 方案 1（更简单，无需额外依赖）
+**新格式处理**:
+```
+HTML: <pre><div>2</div><div>6 6</div><div>1 2</div></pre>
+  ↓ Step 1: </div> → \n
+"\n2\n6 6\n1 2\n"
+  ↓ Step 3: 删除 <div> 开始标签
+"\n2\n6 6\n1 2\n"
+  ↓ Step 4-7: 清理和trim
+"2\n6 6\n1 2\n"  ✅ 正确
+```
 
 ### 测试计划
 
-1. 测试多行输入
-2. 测试包含空行的输入
-3. 测试只有一行的输入
-4. 测试输出（通常也是多行）
+#### 必须测试的用例
+
+1. **旧格式** (Contest 1000, Problem A)
+   - 多行输入
+   - 包含 `<br />` 换行符
+   - 预期：每行正确分离
+
+2. **新格式** (Contest 2122, Problem D)
+   - 多行输入
+   - 包含 `<div class="test-example-line">` 标签
+   - 预期：每个 div 的内容为一行
+
+3. **混合测试**
+   - 确保旧格式不被破坏
+   - 确保新格式正确处理
+   - 测试输出文件（通常也是多行）
+
+4. **边界情况**
+   - 只有一行的输入
+   - 包含空行的输入
+   - 嵌套的 div 标签（如果存在）
 
 ---
 
@@ -319,21 +435,33 @@ func (c *Client) Submit(info Info, langID, source string) (err error) {
 
 ## 📋 修复进度
 
-### Bug #1: 换行符丢失
-- [x] 问题调查
-- [x] 修改 `client/html/parser.go` (2025-12-31 19:44)
-- [x] 测试多行输入 (2025-12-31 19:44)
-- [x] 验证输出文件 (2025-12-31 19:44)
+### Bug #1: 换行符丢失（完整修复）
+
+**状态**: ✅ 已完成
+
+**修复过程**:
+
+**第一阶段** (2025-12-31 19:44) - 旧格式修复:
+- [x] 问题调查 - 旧格式使用 `<br />` 标签
+- [x] 修改 `client/html/parser.go` 处理 `<br>` 标签
+- [x] 测试旧格式 1000a - ✅ 通过
+
+**第二阶段** (2025-12-31 20:20) - 发现新格式问题:
+- [x] 发现新格式使用 `<div>` 标签
+- [x] 测试新格式 2122d - ❌ 失败（所有行被合并）
+- [x] 分析两种 HTML 格式的差异
+
+**第三阶段** (2025-12-31 20:25) - 完整修复:
+- [x] 添加 `</div>` 标签处理（新格式）
+- [x] 添加详细的 INFO 级别日志
+- [x] 测试旧格式 1000a - ✅ 通过（未破坏）
+- [x] 测试新格式 2122d - ✅ 通过（13 行正确分离）
 
 **测试结果**:
+
+**旧格式** (Contest 1000a):
 ```bash
-$ cf parse 1000 a
-
-# 修复前（错误）
-in1.txt: "3XSXSMXLSXS"  # 所有内容在一行
-
-# 修复后（正确）
-in1.txt:
+$ cat cf/contest/1000/a/in1.txt
 3
 XS
 XS
@@ -342,10 +470,33 @@ XL
 S
 XS
 
-# 验证字节内容
-$ od -c cf/contest/1000/a/in1.txt
-0000000   3  \n   X   S  \n   X   S  \n   M  \n   X   L  \n   S  \n   X
-0000020   S  \n  \n
+# ✅ 8 行，换行符正确保留
+```
+
+**新格式** (Contest 2122d):
+```bash
+$ cat cf/contest/2122/d/in1.txt
+2
+6 6
+1 2
+2 3
+3 4
+4 6
+1 5
+5 6
+4 3
+1 2
+1 3
+1 4
+
+# ✅ 13 行，每行正确分离（之前是 1 行 "26 61 22 33..."）
+```
+
+**日志输出** (CF_DEBUG=info):
+```
+[HTML Parser] Replaced </div> tags with newlines (new format)
+[HTML Parser] Replaced <br> tags with newlines (old format)
+[HTML Parser] Extraction complete: 13 lines
 ```
 
 ### Bug #2: 未选择题目
@@ -377,55 +528,118 @@ $ cf submit 101 a
 
 ---
 
-## ✅ 修复总结
+## 🔧 修改计划
+
+### 需要修改的文件
+
+#### 1. **client/html/parser.go**
+
+修改 `extractTextContent()` 函数，按以下顺序处理：
+
+```go
+func extractTextContent(htmlBytes []byte) string {
+    text := string(htmlBytes)
+
+    // STEP 1: Handle <div> tags (new format)
+    // Replace closing </div> tags with newlines
+    divReg := regexp.MustCompile(`</div>`)
+    text = divReg.ReplaceAllString(text, "\n")
+    logger.Info("[HTML Parser] Replaced </div> tags with newlines")
+
+    // STEP 2: Handle <br> tags (old format)
+    brReg := regexp.MustCompile(`<br\s*/?>`)
+    text = brReg.ReplaceAllString(text, "\n")
+    logger.Info("[HTML Parser] Replaced <br> tags with newlines")
+
+    // STEP 3: Remove all remaining HTML tags
+    tagReg := regexp.MustCompile(`<[^>]+>`)
+    text = tagReg.ReplaceAllString(text, "")
+    logger.Debug("[HTML Parser] Removed remaining HTML tags")
+
+    // STEP 4-7: ... (existing logic)
+}
+```
+
+**添加的日志**:
+- 每个步骤添加 INFO 或 DEBUG 日志
+- 便于后续调试和验证处理流程
+
+#### 2. **client/parse.go** (可选)
+
+移除调试代码（如果不再需要）：
+```go
+// 删除或注释掉这行：
+// os.WriteFile("/tmp/cf_parse_debug.html", body, 0644)
+```
+
+### 测试验证
+
+执行以下测试确保修复正确：
+
+```bash
+# 测试旧格式
+rm -rf cf/contest/1000
+./bin/cf parse 1000 a
+cat cf/contest/1000/a/in1.txt  # 应该是多行
+
+# 测试新格式
+rm -rf cf/contest/2122
+./bin/cf parse 2122 d
+cat cf/contest/2122/d/in1.txt  # 应该是多行，不是单行
+
+# 验证字节内容
+od -c cf/contest/2122/d/in1.txt  # 应该看到 \n 换行符
+```
+
+---
+
+## ✅ 当前状态总结
 
 ### 修改的文件
 
-1. **client/html/parser.go**
-   - 修改 `extractTextContent()` 函数
-   - **关键修复**: 添加 `<br>` 标签处理，在删除其他标签前先替换为 `\n`
-   - 将 `\s+` 改为 `[ \t]+`，只替换空格和制表符，保留换行符
-   - 添加逐行 trim 逻辑
+1. **client/html/parser.go** (部分完成)
+   - ✅ 添加 `<br>` 标签处理（旧格式）
+   - ✅ 将 `\s+` 改为 `[ \t]+`，只替换空格和制表符
+   - ✅ 添加逐行 trim 逻辑
+   - ❌ **缺少**: `<div>` 标签处理（新格式）
 
-2. **client/browser/submit.go**
+2. **client/browser/submit.go** (已完成)
    - 添加 `problemID` 参数到 `SubmitCode()` 函数
    - 添加选择题目的步骤（Step 2）
    - **添加大写转换**: `problemIDUpper := strings.ToUpper(problemID)` 确保符合 Codeforces 要求
    - 更新提交按钮选择器，添加 `#singlePageSubmitButton`
    - 重新组织步骤顺序：选择题目 → 选择语言 → 注入代码 → 点击提交
 
-3. **client/submit.go**
+3. **client/submit.go** (已完成)
    - 更新调用 `browser.SubmitCode()` 时传递 `info.ProblemID`
 
-### 测试验证
+### 当前测试状态
 
-✅ **Bug #1 修复验证**:
-- 测试单行输入：正常
-- 测试多行输入：换行符正确保留
-- 测试输出文件：格式正确
+**Bug #1: HTML 解析换行符**
+- ✅ **旧格式** (Contest 1000a): 正常工作 - 8 行正确分离
+- ✅ **新格式** (Contest 2122d): 已修复 - 13 行正确分离
+- ✅ **日志输出**: 详细的 INFO 级别日志便于调试
 
-✅ **Bug #2 修复验证**:
-- 提交 A 题：成功
-- **大写转换**: "a" → "A" 正确转换
-- 选择题目正确填充：`submittedProblemIndex` = "A"
-- 提交按钮点击成功：使用 `#singlePageSubmitButton`
-- 提交记录显示正确的题目：`problem=A - Homework`
+**Bug #2: 提交未选择题目**
+- ✅ **完全修复**: 题目选择、大写转换、提交按钮点击都正常
 
-### Git Commit
+### Git Commit History
 
+**已完成**:
 ```bash
-commit: HOTFIX - Fix critical bugs in parse and submit
-1. HTML parser: Handle <br> tags to preserve newlines (Bug #1)
-2. Browser submit: Select problem before submitting (Bug #2)
-3. Browser submit: Convert problemID to uppercase (a → A)
+commit 503b6a2: HOTFIX - Handle <br> tags in HTML parser to preserve newlines
+commit 8667beb: HOTFIX - Add uppercase conversion for problemID in browser submit
+commit <pending>: HOTFIX - Handle <div> tags in HTML parser for new format
+  1. Add </div> tag replacement with newlines
+  2. Add detailed INFO level logging for parsing steps
+  3. Test both old (<br>) and new (<div>) formats - both pass
 ```
-
-**关键发现**: Bug #1 的真正原因是 HTML 中使用 `<br />` 标签表示换行，而不是 `\n` 字符。
-必须在删除其他 HTML 标签之前先将 `<br>` 替换为换行符。
 
 ---
 
-**最后更新**: 2025-12-31 20:15
-**状态**: ✅ 所有关键 bug 已修复并测试通过
-- Bug #1: HTML parser 正确处理 `<br>` 标签保留换行符
-- Bug #2: 提交时正确选择题目并转换为大写
+**最后更新**: 2025-12-31 20:30
+**状态**: ✅ 所有关键 bug 已完整修复
+- ✅ Bug #1 旧格式: `<br>` 标签处理正常
+- ✅ Bug #1 新格式: `<div>` 标签处理已添加
+- ✅ Bug #1 日志: 详细的 INFO 级别日志便于调试
+- ✅ Bug #2: 提交时正确选择题目并转换为大写

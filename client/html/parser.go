@@ -5,6 +5,8 @@ import (
 	"html"
 	"regexp"
 	"strings"
+
+	"github.com/NetWilliam/cf-tool/pkg/logger"
 )
 
 // ParseTestcases extracts test cases from problem HTML
@@ -39,36 +41,51 @@ func ParseTestcases(body []byte) (input, output [][]byte, err error) {
 
 // extractTextContent extracts text content from HTML, removing all tags
 // Preserves newlines while normalizing spaces and tabs
+// Handles both old format (<br> tags) and new format (<div> tags)
 func extractTextContent(htmlBytes []byte) string {
 	text := string(htmlBytes)
 
-	// CRITICAL: Replace <br> tags with newlines BEFORE removing other tags
-	// This handles both <br>, <br/>, and <br /> variants
+	// STEP 1: Handle <div> tags (NEW format - recent contests)
+	// Replace closing </div> tags with newlines to preserve line breaks
+	// Each <div>...</div> represents one line in the new format
+	divReg := regexp.MustCompile(`</div>`)
+	text = divReg.ReplaceAllString(text, "\n")
+	logger.Info("[HTML Parser] Replaced </div> tags with newlines (new format)")
+
+	// STEP 2: Handle <br> tags (OLD format - older contests)
+	// Replace <br>, <br/>, and <br /> with newlines
 	brReg := regexp.MustCompile(`<br\s*/?>`)
 	text = brReg.ReplaceAllString(text, "\n")
+	logger.Info("[HTML Parser] Replaced <br> tags with newlines (old format)")
 
-	// Remove all remaining HTML tags
+	// STEP 3: Remove all remaining HTML tags
+	// At this point, all structural tags are gone or replaced with newlines
 	tagReg := regexp.MustCompile(`<[^>]+>`)
 	text = tagReg.ReplaceAllString(text, "")
+	logger.Debug("[HTML Parser] Removed remaining HTML tags")
 
-	// Unescape HTML entities
+	// STEP 4: Unescape HTML entities
 	text = html.UnescapeString(text)
+	logger.Debug("[HTML Parser] Unescaped HTML entities")
 
-	// ONLY replace spaces and tabs, NOT newlines or carriage returns
-	// This preserves line breaks while normalizing horizontal whitespace
+	// STEP 5: Normalize horizontal whitespace (spaces and tabs only)
+	// Do NOT touch newlines or carriage returns
 	spaceReg := regexp.MustCompile(`[ \t]+`)
 	text = spaceReg.ReplaceAllString(text, " ")
+	logger.Debug("[HTML Parser] Normalized horizontal whitespace")
 
-	// Trim each line and preserve line breaks
+	// STEP 6: Trim each line and preserve line breaks
 	lines := strings.Split(text, "\n")
 	for i, line := range lines {
 		lines[i] = strings.TrimSpace(line)
 	}
 	text = strings.Join(lines, "\n")
+	logger.Debug("[HTML Parser] Trimmed each line")
 
-	// Trim leading/trailing whitespace (spaces/tabs) but keep structure
+	// STEP 7: Trim leading/trailing whitespace but keep structure
 	text = strings.Trim(text, " \t\r")
 
+	logger.Info("[HTML Parser] Extraction complete: %d lines", strings.Count(text, "\n")+1)
 	return text
 }
 
