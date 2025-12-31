@@ -141,9 +141,9 @@ func (f *BrowserFetcher) Post(url string, data url.Values) ([]byte, error) {
 
 	// Use chrome_network_request for POST
 	result, err := f.mcpClient.NetworkRequest(ctx, &mcp.NetworkRequestOptions{
-		URL:     url,
-		Method:  "POST",
-		Body:    data.Encode(),
+		URL:    url,
+		Method: "POST",
+		Body:   data.Encode(),
 		Headers: map[string]string{
 			"Content-Type": "application/x-www-form-urlencoded",
 		},
@@ -173,4 +173,3 @@ func (f *BrowserFetcher) Post(url string, data url.Values) ([]byte, error) {
 }
 
 const defaultTimeout = 30 // seconds
-

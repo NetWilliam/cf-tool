@@ -432,8 +432,8 @@ func extractMusicInfo(text string) []MusicInfo {
 
 				// Filter out non-music content
 				if len(artist) > 2 && len(songName) > 2 &&
-				   !strings.Contains(strings.ToLower(artist), "billboard") &&
-				   !strings.Contains(strings.ToLower(songName), "billboard") {
+					!strings.Contains(strings.ToLower(artist), "billboard") &&
+					!strings.Contains(strings.ToLower(songName), "billboard") {
 					songs = append(songs, MusicInfo{
 						Name:   songName,
 						Artist: artist,

@@ -15,16 +15,16 @@ import (
 
 // Client represents a browser-based HTTP client
 type Client struct {
-	mcpClient   *mcp.Client
-	timeout     time.Duration
+	mcpClient    *mcp.Client
+	timeout      time.Duration
 	autoRedirect bool
 }
 
 // NewClient creates a new browser HTTP client
 func NewClient(mcpClient *mcp.Client) *Client {
 	return &Client{
-		mcpClient:   mcpClient,
-		timeout:     30 * time.Second,
+		mcpClient:    mcpClient,
+		timeout:      30 * time.Second,
 		autoRedirect: true,
 	}
 }

@@ -9,12 +9,12 @@ import (
 
 // Client represents an MCP client (wrapper for backward compatibility)
 type Client struct {
-	httpClient *HTTPClient
-	stdioClient *StdioClient
+	httpClient    *HTTPClient
+	stdioClient   *StdioClient
 	transportType string // "stdio" or "http"
-	initialized bool
-	mu          sync.RWMutex
-	requestID   int64
+	initialized   bool
+	mu            sync.RWMutex
+	requestID     int64
 }
 
 // NewClient creates a new MCP client with stdio transport
@@ -68,7 +68,7 @@ func (c *Client) Initialize(ctx context.Context) error {
 
 	req := &InitializeRequest{
 		ProtocolVersion: "2024-11-05",
-		Capabilities: map[string]interface{}{},
+		Capabilities:    map[string]interface{}{},
 		ClientInfo: map[string]string{
 			"name":    "cf-tool",
 			"version": "1.0.0",

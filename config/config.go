@@ -63,9 +63,9 @@ var Instance *Config
 // Init initialize
 func Init(path string) {
 	c := &Config{
-		path:   path,
-		Host:   "https://codeforces.com",
-		Proxy:  "",
+		path:  path,
+		Host:  "https://codeforces.com",
+		Proxy: "",
 		Browser: BrowserConfig{
 			Enabled:        false,
 			Transport:      "http",

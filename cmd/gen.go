@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/NetWilliam/cf-tool/client"
 	"github.com/NetWilliam/cf-tool/config"
 	"github.com/NetWilliam/cf-tool/util"
+	"github.com/fatih/color"
 )
 
 func parseTemplate(source string, cln *client.Client) string {

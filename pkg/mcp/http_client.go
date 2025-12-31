@@ -14,10 +14,10 @@ import (
 
 // HTTPClient implements simple HTTP-based MCP client (streamable-http)
 type HTTPClient struct {
-	client     *http.Client
-	serverURL  string
-	sessionID  string
-	mu         sync.RWMutex
+	client      *http.Client
+	serverURL   string
+	sessionID   string
+	mu          sync.RWMutex
 	initialized bool
 	requestID   int64
 }
@@ -30,7 +30,7 @@ func NewHTTPClient(serverURL string) (*HTTPClient, error) {
 
 	return &HTTPClient{
 		client:      &http.Client{Timeout: 30 * time.Second},
-		serverURL:  serverURL,
+		serverURL:   serverURL,
 		initialized: false,
 		requestID:   0,
 	}, nil
@@ -40,7 +40,7 @@ func NewHTTPClient(serverURL string) (*HTTPClient, error) {
 func (c *HTTPClient) Initialize(ctx context.Context) error {
 	req := &InitializeRequest{
 		ProtocolVersion: "2024-11-05",
-		Capabilities: map[string]interface{}{},
+		Capabilities:    map[string]interface{}{},
 		ClientInfo: map[string]string{
 			"name":    "cf-tool",
 			"version": "1.0.0",

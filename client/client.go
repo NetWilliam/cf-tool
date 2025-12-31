@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fatih/color"
-	"github.com/NetWilliam/cf-tool/pkg/logger"
 	"github.com/NetWilliam/cf-tool/cookiejar"
+	"github.com/NetWilliam/cf-tool/pkg/logger"
 	"github.com/NetWilliam/cf-tool/pkg/mcp"
+	"github.com/fatih/color"
 )
 
 // Client codeforces client
@@ -83,11 +83,11 @@ func Init(path, host, proxy string) {
 	}
 
 	// Try to load user info from profile page
-    /*
-	if c.browserEnabled {
-		c.loadUserInfoFromBrowser()
-	}
-    */
+	/*
+		if c.browserEnabled {
+			c.loadUserInfoFromBrowser()
+		}
+	*/
 
 	if err := c.save(); err != nil {
 		color.Red(err.Error())
