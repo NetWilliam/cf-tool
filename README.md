@@ -32,15 +32,21 @@ Pull requests are always welcome.
 
 ## Installation
 
-Compile it from the source **(go >= 1.12)**:
+Clone the repository and build with make **(go >= 1.12)**:
 
-```plain
-$ go get github.com/xalanq/cf-tool
-$ cd $GOPATH/src/github.com/xalanq/cf-tool
-$ go build -ldflags "-s -w" cf.go
+```bash
+# Clone the repository
+git clone https://github.com/NetWilliam/cf-tool.git
+cd cf-tool
+
+# Build with make
+make build
+
+# (Optional) Install to ~/go/bin
+make install
 ```
 
-If you don't know what's the `$GOPATH`, please see here <https://github.com/golang/go/wiki/GOPATH>.
+The compiled binary will be at `./bin/cf`. You can move it to anywhere you like or add it to your PATH.
 
 ### Browser Mode (Recommended)
 

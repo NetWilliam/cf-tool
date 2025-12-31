@@ -32,15 +32,21 @@ Codeforces Tool 是 [Codeforces](https://codeforces.com) 的命令行界面的�
 
 ## 安装
 
-把整个 repo 给 clone 下来，然后自己编译 (go >= 1.12)：
+克隆仓库到本地，然后使用 make 编译 (go >= 1.12)：
 
-```plain
-$ go get github.com/xalanq/cf-tool
-$ cd $GOPATH/src/github.com/xalanq/cf-tool
-$ go build -ldflags "-s -w" cf.go
+```bash
+# 克隆仓库
+git clone https://github.com/NetWilliam/cf-tool.git
+cd cf-tool
+
+# 使用 make 编译
+make build
+
+# （可选）安装到 ~/go/bin
+make install
 ```
 
-如果你不知道 `$GOPATH` 是什么，请看一下这篇文章 <https://github.com/golang/go/wiki/GOPATH>.
+编译后的二进制文件位于 `./bin/cf`。你可以把它移动到任何位置，或者把它添加到系统 PATH 环境变量中。
 
 ### 浏览器模式（推荐）
 
