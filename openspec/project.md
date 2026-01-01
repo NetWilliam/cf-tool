@@ -82,10 +82,11 @@ The project's goal is to provide a fast, lightweight, cross-platform CLI tool th
 - **Strategy Pattern**: Multiple submission strategies (legacy API vs browser automation)
 
 **Browser Mode Architecture:**
-- Browser mode is now **required** for `parse` and `submit` commands
+- Browser mode is **MANDATORY** for all network-dependent commands
 - Uses Chrome DevTools Protocol via MCP for web automation
 - Bypasses Cloudflare protection that blocks direct API access
-- Falls back gracefully when browser is unavailable
+- NO HTTP fallback - cf-tool will not function without browser mode
+- Local-only commands (config, test, gen, open, stand, sid) work independently
 
 ### Testing Strategy
 
@@ -174,14 +175,16 @@ The project's goal is to provide a fast, lightweight, cross-platform CLI tool th
 
 **Technical Constraints:**
 - **Go 1.12+ required** for building (currently using Go 1.24)
-- **Browser mode mandatory** for `parse` and `submit` commands (Cloudflare bypass)
+- **Browser mode MANDATORY** for all network operations (list, parse, submit, watch, race, pull, clone)
+- **Local-only commands** (config, gen, test, open, stand, sid) work without browser mode
 - **Cross-platform support**: Linux, macOS, Windows (amd64/arm64)
 - **Single binary distribution**: No external runtime dependencies except mcp-chrome
 
 **Platform Constraints:**
 - **Codeforces API limitations** - Rate limiting, Cloudflare protection
-- **Browser requirement** - Must have Chrome/Chromium installed
-- **mcp-chrome dependency** - External service must be running on port 12306
+- **Browser requirement** - Chrome/Chromium MUST be installed
+- **mcp-chrome dependency** - REQUIRED service must be running on port 12306
+- **No HTTP fallback** - Direct HTTP requests blocked by Cloudflare
 
 **Business/Usage Constraints:**
 - Must not violate Codeforces terms of service

@@ -48,9 +48,11 @@ make install
 
 The compiled binary will be at `./bin/cf`. You can move it to anywhere you like or add it to your PATH.
 
-### Browser Mode (Required)
+### Browser Mode (REQUIRED)
 
-cf-tool now uses **Browser Mode** for parsing and submitting, which bypasses Cloudflare protection and provides better stability.
+⚠️ **IMPORTANT**: Browser Mode is **REQUIRED** for all network operations. cf-tool will not function without it.
+
+cf-tool uses **Browser Mode** to bypass Cloudflare protection on Codeforces. All commands that interact with Codeforces (parse, submit, list, watch, race, pull, clone) require browser mode.
 
 **Required**: [mcp-chrome](https://github.com/hangwin/mcp-chrome/) - A Chrome extension that exposes Chrome DevTools Protocol via MCP.
 
@@ -95,7 +97,22 @@ cf-tool now uses **Browser Mode** for parsing and submitting, which bypasses Clo
    - `cf mcp-ping` should return: `✅ MCP Chrome Server is running`
    - `cf mocka` should open Chrome and navigate to Codeforces
 
-**Note**: Browser Mode is **required** for `cf parse` and `cf submit` commands in the new version.
+**Note**: Browser Mode is **required** for all network-dependent commands:
+- `cf list` - Problem statistics
+- `cf parse` - Fetch samples
+- `cf submit` - Submit code
+- `cf watch` - Monitor submissions
+- `cf race` - Contest countdown and parsing
+- `cf pull` - Download submissions
+- `cf clone` - Clone user's codes
+
+Local-only commands work without browser mode:
+- `cf config` - Configuration
+- `cf gen` - Generate code from template
+- `cf test` - Local testing
+- `cf open` - Open URL in browser
+- `cf stand` - Open standings
+- `cf sid` - Open submission page
 
 For more details about mcp-chrome, visit: https://github.com/hangwin/mcp-chrome/
 
