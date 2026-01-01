@@ -7,32 +7,15 @@
 
 Codeforces Tool 是 [Codeforces](https://codeforces.com) 的命令行界面的工具。
 
-这玩意儿挺快、挺小、挺强大，还跨平台哦。
+这是原版 [cf-tool](https://github.com/xalanq/cf-tool) 的一个分支，增加了浏览器模式支持以绕过 Cloudflare 保护。
 
-[安装](#安装) | [使用方法](#使用方法) | [常见问题](#常见问题) | [English](./README.md)
-
-## 特点
-
-* 支持 Contests、Gym、Groups 和 acmsguru
-* 支持 Codeforces 中的所有编程语言
-* 提交代码
-* 动态刷新提交后的情况
-* 拉取问题的样例
-* 本地编译和测试样例
-* 拉取某人的所有代码
-* 从指定模板生成代码（包括时间戳，作者等信息）
-* 列出某场比赛的所有题目的整体信息
-* 用默认的网页浏览器打开题目页面、榜单、提交页面等
-* 设置网络代理，设置镜像站
-* 丰富多彩的命令行
-
-欢迎大家一起完善这个工具呀，欢迎Pull requests。
-
-![](./assets/readme_1.gif)
+[English](./README.md)
 
 ## 安装
 
-克隆仓库到本地，然后使用 make 编译 (go >= 1.12)：
+### 第一步：编译 cf-tool
+
+克隆仓库到本地，然后使用 make 编译 **(go >= 1.12)**：
 
 ```bash
 # 克隆仓库
@@ -48,256 +31,96 @@ make install
 
 编译后的二进制文件位于 `./bin/cf`。你可以把它移动到任何位置，或者把它添加到系统 PATH 环境变量中。
 
-### 浏览器模式（必需）
+### 第二步：安装浏览器模式组件
 
-cf-tool 现已使用**浏览器模式**进行解析和提交，可以绕过 Cloudflare 保护并提供更好的稳定性。
+⚠️ **重要提示**：浏览器模式是所有网络操作（parse、submit、list、watch、race、pull、clone）的**必需要求**。
 
-**必需组件**：[mcp-chrome](https://github.com/hangwin/mcp-chrome/) - 一个通过 MCP 暴露 Chrome DevTools Protocol 的 Chrome 扩展。
+cf-tool 使用**浏览器模式**来绕过 Codeforces 的 Cloudflare 保护。你需要安装：
 
-#### 安装步骤
+1. **[mcp-chrome](https://github.com/hangwin/mcp-chrome/)** - 通过 MCP 暴露 Chrome DevTools Protocol 的 Chrome 扩展
 
-1. **下载 mcp-chrome 扩展**
-   - 从 [GitHub releases](https://github.com/hangwin/mcp-chrome/releases) 下载扩展文件
-   - 解压下载的文件到文件夹
+2. **mcp-chrome-bridge** - Node.js 桥接服务
 
-2. **安装 mcp-chrome-bridge**
-   ```bash
-   # 使用 npm
-   npm install -g @hangwin/mcp-chrome-bridge
+#### 快速安装
 
-   # 或使用 pnpm
-   pnpm add -g @hangwin/mcp-chrome-bridge
-   ```
+```bash
+# 安装 mcp-chrome-bridge
+npm install -g @hangwin/mcp-chrome-bridge
 
-3. **加载 Chrome 扩展**
-   - 打开 Chrome 浏览器，访问 `chrome://extensions/`
-   - 开启"开发者模式"
-   - 点击"加载已解压的扩展程序"，选择下载的扩展文件夹
-   - 点击扩展图标打开插件，然后点击连接查看 MCP 配置
+# 或使用 pnpm
+pnpm add -g @hangwin/mcp-chrome-bridge
+```
 
-4. **启动 mcp-chrome-bridge**
-   ```bash
-   mcp-chrome-bridge
-   ```
-   默认运行在 `http://127.0.0.1:12306/mcp`。
+然后：
 
-5. **验证安装**
-   ```bash
-   # 测试 MCP 连接
-   cf mcp-ping
+1. 从 [GitHub releases](https://github.com/hangwin/mcp-chrome/releases) 下载 mcp-chrome 扩展
+2. 解压到文件夹
+3. 打开 Chrome 浏览器，访问 `chrome://extensions/`
+4. 开启"开发者模式"
+5. 点击"加载已解压的扩展程序"，选择扩展文件夹
+6. 在终端运行 `mcp-chrome-bridge`（运行在 `http://127.0.0.1:12306/mcp`）
 
-   # 测试浏览器自动化
-   cf mocka
-   ```
+#### 验证安装
 
-   **重要提示**：在使用 cf-tool 之前，请确保两个命令都成功运行！
+```bash
+# 测试 MCP 连接
+cf mcp-ping
 
-   - `cf mcp-ping` 应该返回：`✅ MCP Chrome Server is running`
-   - `cf mocka` 应该打开 Chrome 并导航到 Codeforces
+# 测试浏览器自动化
+cf mocka
+```
 
-**注意**：新版本的 `cf parse` 和 `cf submit` 命令**必须**使用浏览器模式。
+**重要提示**：在使用 cf-tool 之前，请确保两个命令都成功运行！
 
 更多关于 mcp-chrome 的详情，请访问：https://github.com/hangwin/mcp-chrome/
 
-## 使用方法
+## 新增命令
 
-以下简单模拟一场比赛的流程。
+这个分支新增了两个用于测试浏览器模式的命令：
 
- `cf race 1136` 或者 `cf race https://codeforces.com/contest/1136`
+### cf mcp-ping
 
-就开始打 1136 这场比赛了！
+测试与 MCP Chrome Server 的连接。
 
-如果比赛还未开始，则该命令会进行倒计时。比赛已开始或倒计时完后，工具会自动用默认浏览器打开比赛的题目界面与所有题目页面，并拉取样例到本地。
-
- `cd ./cf/contest/1136/a` （或者是其他的路径，请看屏幕前的提示）
-
-进入 A 题的目录，此时该目录下会包含该题的样例。
-
- `cf gen` 
-
-用默认模板生成一份代码，代码文件名默认是题目的 ID。
-
- `vim a.cpp` 
-
-用 Vim 写代码（这取决于你）。
-
- `cf test` 
-
-编译并测试样例。
-
- `cf submit` 
-
-提交代码。
-
- `cf list` 
-
-查看当前比赛各个题目的信息。
-
- `cf stand` 
-
-用浏览器打开榜单，查看排名。
-
-```plain
-首先你得用 "cf config" 命令来配置一下用户名、密码和代码模板。
-
-如果你想用本工具打比赛，那么最好用 "cf race" 命令。
-
-支持的命令:
-  cf config
-  cf submit [-f <file>] [<specifier>...]
-  cf list [<specifier>...]
-  cf parse [<specifier>...]
-  cf gen [<alias>]
-  cf test [<file>]
-  cf watch [all] [<specifier>...]
-  cf open [<specifier>...]
-  cf stand [<specifier>...]
-  cf sid [<specifier>...]
-  cf race [<specifier>...]
-  cf pull [ac] [<specifier>...]
-  cf clone [ac] [<handle>]
-  cf upgrade
-
-参数:
-  -h --help            帮助。
-  --version            显示版本。
-  -f <file>, --file <file>, <file>
-                       文件的路径，例如 "a.cpp"、"./temp/a.cpp"
-  <specifier>          任何有用的文本，例如
-                       "https://codeforces.com/contest/100"、
-                       "https://codeforces.com/contest/180/problem/A"、
-                       "https://codeforces.com/group/Cw4JRyRGXR/contest/269760"、
-                       "1111A"、"1111"、"a"、"Cw4JRyRGXR"。
-                       你可以任意组合多个 <specifier> 来说明你的需求。
-  <alias>              模板的名字，比如 "cpp"。
-  ac                   是否只获取 Accpeted 的代码。
-
-例子:
-  cf config            配置 cf-tool。
-  cf submit            cf 会自动检测你需要提交的文件。
-  cf submit -f a.cpp
-  cf submit https://codeforces.com/contest/100/A
-  cf submit -f a.cpp 100A 
-  cf submit -f a.cpp 100 a
-  cf submit contest 100 a
-  cf submit gym 100001 a
-  cf list              列出当前比赛的题目通过、时限等信息。
-  cf list 1119         
-  cf parse 100         获取 contest 100 的所有题目的样例到文件夹
-                       "{cf}/{contest}/100/" 中。
-  cf parse gym 100001a
-                       获取 gym 100001 的 a 题的样例到文件夹
-                       "{cf}/{gym}/100001/a" 中。
-  cf parse gym 100001
-                       获取 gym 100001 的所有题目的样例到文件夹
-                       "{cf}/{gym}/100001" 中。
-  cf parse             获取当前比赛的当前题目到当前文件夹下。
-  cf gen               用默认的模板生成一份代码到当前文件夹下。
-  cf gen cpp           用名字为 "cpp" 的模板来生成一份代码到当前文件夹下。
-  cf test              在当前目录下执行模板里的命令，并测试全部样例。如果你想加一组新的测试数据，
-                       新建两个文件 "inK.txt" 和 "ansK.txt" 即可，其中 K 是包含 0~9 的字符串。
-  cf watch             查看自己在当前比赛的最后 10 次提交结果。
-  cf watch all         查看自己在当前比赛的全部提交结果
-  cf open 1136a        用默认的浏览器打开比赛 contest 1136, problem a.
-  cf open gym 100136   用默认的浏览器打开比赛 gym 100136.
-  cf stand             用默认的浏览器打开当前比赛的榜单。
-  cf sid 52531875      用默认的浏览器打开 52531875 这个提交页面。
-  cf sid               打开最后一次提交的页面。
-  cf race 1136         如果比赛还未开始且进入倒计时，则该命令会倒计时。倒计时完后，会自动打开一些
-                       题目页面并拉取样例。
-  cf pull 100          拉取比赛 id 为 100 每道题的最新代码到文件夹 "./100/<problem-id>" 下。
-  cf pull 100 a        拉取比赛 id 为 100 的题目 a 的最新代码到文件夹 "./100/a" 下。
-  cf pull ac 100 a     拉取比赛 id 为 100 的题目 a 的 AC 代码。
-  cf pull              拉取当前题目的最新代码到当前文件夹下。
-  cf clone xalanq      拉取 xalanq 的所有提交代码。
-  cf upgrade           从 GitHub 更新 "cf" 到最新版。
-
-储存的文件:
-  cf 会保存数据到以下文件：
-
-  "~/.cf/config"        这是配置文件，包括模版等信息。
-  "~/.cf/session"       这是会话文件，包括 cookies、用户名、密码等。
-
-  "~" 这个符号是系统当前用户的主文件夹。
-
-模板:
-  你可以在你的代码里插入一些标识符，当用 cf 生成代码的时候，标识符会按照以下规则替换：
-
-  $%U%$   用户名 (例如 xalanq)
-  $%Y%$   年  (例如 2019)
-  $%M%$   月  (例如 04)
-  $%D%$   日  (例如 09)
-  $%h%$   时  (例如 08)
-  $%m%$   分  (例如 05)
-  $%s%$   秒  (例如 00)
-
-模板内的脚本:
-  模板支持三个脚本命令，当使用 "cf test" 时会依次执行：
-    - before_script   (只会执行一次)
-    - script          (有多少个样例就会执行多少次)
-    - after_script    (只会执行一次)
-  "before_script" 或者 "after_script" 你可以根据需要来设置，也可以设置为空。
-  在 "script" 里你必须要运行你的程序，通过标准 IO 来输入/输出数据（不用重定向）。
-
-  你在这些脚本命令里也能插入一些标识符，这些标识符会按照以下规则替换：
-  
-  $%path%$   代码的路径 (不包括 $%full%$， 比如 "/home/xalanq/")
-  $%full%$   代码的文件名 (比如 "a.cpp")
-  $%file%$   代码的文件名 (不包括后缀，比如 "a")
-  $%rand%$   一个长度为 8 的随机字符串 (只包括 "a-z" "0-9" 范围内的字符)
+```bash
+cf mcp-ping
 ```
 
-## 模板例子
-
-当这份模板被 `cf gen` 生成时，模板内部的占位符会替换成相应的内容。
-
+预期输出：
 ```
-$%U%$   用户名 (例如 xalanq)
-$%Y%$   年  (例如 2019)
-$%M%$   月  (例如 04)
-$%D%$   日  (例如 09)
-$%h%$   时  (例如 08)
-$%m%$   分  (例如 05)
-$%s%$   秒  (例如 00)
+✅ MCP Chrome Server is running
 ```
 
-```cpp
-/* Generated by powerful Codeforces Tool
- * Author: $%U%$
- * Time: $%Y%$-$%M%$-$%D%$ $%h%$:$%m%$:$%s%$
-**/
+### cf mocka
 
-#include <bits/stdc++.h>
-using namespace std;
+测试浏览器自动化功能。打开 Chrome 浏览器，导航到 Google 并搜索 "billboard 季度榜"，然后返回页面内容以验证浏览器自动化是否正常工作。
 
-typedef long long ll;
-
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(0);
-    
-    return 0;
-}
+```bash
+cf mocka
 ```
+
+此命令用于验证 cf-tool 能够正确控制你的浏览器。
+
+## 原版文档
+
+关于所有 cf-tool 命令的详细用法（parse、submit、race 等），请参考[原版仓库](https://github.com/xalanq/cf-tool)。
+
+原版的所有命令在此分支中都得到支持，并且网络操作默认启用浏览器模式。
 
 ## 常见问题
 
-### 我双击了这个程序但是没啥效果
+### 浏览器模式是必需的吗？
 
-Codeforces Tool 是命令行界面的工具，你应该在终端里运行这个工具。
+是的。由于 Codeforces 的 Cloudflare 保护，所有依赖网络的命令现在都需要浏览器模式。
 
-### 我无法使用 `cf` 这个命令
+### 如何检查浏览器模式是否正常工作？
 
-你应该将 `cf` 这个程序放到一个已经加入到系统变量 PATH 的路径里 (比如说 Linux 里的 `/usr/bin/` )。
+运行 `cf mcp-ping`。如果显示 "✅ MCP Chrome Server is running"，说明浏览器模式已就绪。
 
-或者你直接去搜 "怎样添加路径到系统变量 PATH"。
+### 我可以使用旧的 HTTP 模式吗？
 
-### 如何加一个新的测试数据
+不可以。旧的 HTTP 模式无法绕过 Cloudflare 保护，不再被支持。
 
-新建两个额外的测试数据文件 `inK.txt` 和 `ansK.txt` （K 是包含 0~9 的字符串）。
+## 许可证
 
-### 在终端里启用 tab 补全命令
-
-使用这个工具 [Infinidat/infi.docopt_completion](https://github.com/Infinidat/infi.docopt_completion) 即可。
-
-注意：如果有一个新版本发布（尤其是添加了新命令），你应该重新运行 `docopt-completion cf`。
+MIT License - 与原版 [cf-tool](https://github.com/xalanq/cf-tool) 相同
