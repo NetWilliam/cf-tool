@@ -101,6 +101,19 @@ cf mocka
 
 This command is used to verify that cf-tool can correctly control your browser.
 
+## Verified Commands
+
+The following commands have been tested and verified to work with browser mode:
+
+- [x] `cf parse` - Fetch problem samples
+- [x] `cf gen` - Generate code from template
+- [x] `cf test` - Compile and test locally
+- [x] `cf submit` - Submit code to Codeforces
+- [x] `cf open` - Open problems in browser
+- [x] `cf sid` - Open submission page
+- [x] `cf race` - Contest countdown and parsing
+- [ ] `cf clone` - Clone user submissions (~~partially working~~, behavior unclear)
+
 ## Original Documentation
 
 For detailed usage of all cf-tool commands (parse, submit, race, etc.), please refer to the [original repository](https://github.com/xalanq/cf-tool).

@@ -101,6 +101,19 @@ cf mocka
 
 此命令用于验证 cf-tool 能够正确控制你的浏览器。
 
+## 已验证命令
+
+以下命令已测试并验证在浏览器模式下正常工作：
+
+- [x] `cf parse` - 获取题目样例
+- [x] `cf gen` - 从模板生成代码
+- [x] `cf test` - 本地编译和测试
+- [x] `cf submit` - 提交代码到 Codeforces
+- [x] `cf open` - 在浏览器中打开题目
+- [x] `cf sid` - 打开提交页面
+- [x] `cf race` - 比赛倒计时和解析
+- [ ] `cf clone` - 克隆用户提交（~~部分工作~~，行为不明确）
+
 ## 原版文档
 
 关于所有 cf-tool 命令的详细用法（parse、submit、race 等），请参考[原版仓库](https://github.com/xalanq/cf-tool)。
