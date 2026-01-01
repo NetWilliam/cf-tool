@@ -74,12 +74,20 @@ func Init(path, host, proxy string) {
 	}
 	c.client = &http.Client{Jar: c.Jar, Transport: &http.Transport{Proxy: Proxy}}
 
-	// Try to initialize browser mode (will auto-detect MCP server)
+	// Initialize browser mode (REQUIRED for all network operations)
 	logger.Info("Initializing browser mode...\n")
 	if err := c.initBrowserMode(); err != nil {
-		logger.Warning("Browser mode not available: %v\n", err)
-		logger.Info("Falling back to HTTP mode. Some features may not work.\n")
-		c.fetcher = NewHTTPFetcher(c.client)
+		color.Red("\n❌ Browser mode is required but not available.\n")
+		color.Cyan("\nPlease install and configure mcp-chrome:\n")
+		color.White("  1. Download from: https://github.com/hangwin/mcp-chrome/releases\n")
+		color.White("  2. Extract to a folder\n")
+		color.White("  3. Install bridge: npm install -g @hangwin/mcp-chrome-bridge\n")
+		color.White("  4. Load extension in Chrome (chrome://extensions/ → Developer mode → Load unpacked)\n")
+		color.White("  5. Start bridge: mcp-chrome-bridge\n")
+		color.White("  6. Verify: cf mcp-ping\n\n")
+		color.Cyan("See README.md for detailed instructions.\n\n")
+		color.Red("Error: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Try to load user info from profile page
